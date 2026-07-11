@@ -1,5 +1,17 @@
 // public/js/views/printAgenda.js
 
+// Fixed reference list for the print footer legend. Intentionally not
+// pulled from the admin-editable pathways table — this always shows the
+// full canonical 11 Toastmasters paths regardless of which ones the club
+// has active/inactive, so it stays constant and isn't something admins
+// need to (or can) edit.
+const PATHWAY_LEGEND = [
+  '精通演说 - PM', '运用幽默 - EH', '劝说影响 - PI',
+  '动态领导 - DL', '愿景沟通 - VC', '激励策略 - MS',
+  '创新规划 - IP', '策略关系 - SR', '有效教练 - EC',
+  '发展领导 - LD', '团队协作 - TC',
+];
+
 async function renderPrintAgenda(meetingId) {
   const app = document.getElementById('app');
   app.innerHTML = '<div class="empty-state">加载中…</div>';
@@ -141,6 +153,13 @@ async function renderPrintAgenda(meetingId) {
         '</div>' +
 
         '<div class="print-dresscode">衣着：女士服装端庄大方，男士衬衫长裤。欢迎公众人士观摩</div>' +
+        (m.footer_remarks ? '<div class="print-remarks">' + escapeHtml(m.footer_remarks) + '</div>' : '') +
+        '<div class="print-pathway-legend">' +
+          '<div class="legend-title">新路径 ：Pathways 十一大路线</div>' +
+          '<div class="legend-grid">' +
+            PATHWAY_LEGEND.map(function (s) { return '<div>' + escapeHtml(s) + '</div>'; }).join('') +
+          '</div>' +
+        '</div>' +
       '</div>' +
     '</div>';
 

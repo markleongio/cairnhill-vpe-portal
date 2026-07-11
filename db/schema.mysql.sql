@@ -164,6 +164,7 @@ CREATE TABLE IF NOT EXISTS meetings (
   best_evaluator_id INT,
   best_table_topics_id INT,
   dress_code        VARCHAR(500) DEFAULT '女士服装端庄大方，男士衬衫长裤。欢迎公众人士观摩',
+  footer_remarks    VARCHAR(1000),
   created_by        INT,
   created_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

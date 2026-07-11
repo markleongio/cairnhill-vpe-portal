@@ -52,6 +52,7 @@ function renderBuilderContent(viewOnly) {
         '<div class="field"><label>' + escapeHtml(t('theme')) + '</label><input type="text" id="m-theme" value="' + escapeHtml(m.theme || '') + '" ' + (editable ? '' : 'disabled') + '></div>' +
         '<div class="field"><label>' + escapeHtml(t('venue')) + '</label><input type="text" id="m-venue" value="' + escapeHtml(m.venue || '') + '" ' + (editable ? '' : 'disabled') + '></div>' +
       '</div>' +
+      '<div class="field"><label>' + escapeHtml(t('footer_remarks')) + '</label><textarea id="m-footer-remarks" rows="2" placeholder="' + escapeHtml(t('footer_remarks_placeholder')) + '" ' + (editable ? '' : 'disabled') + '>' + escapeHtml(m.footer_remarks || '') + '</textarea></div>' +
       (editable ? '<button class="btn btn-sm" id="save-meta-btn"><i class="ti ti-device-floppy"></i> ' + escapeHtml(t('save_basic_info')) + '</button>' : '') +
     '</div>' +
 
@@ -326,6 +327,7 @@ function wireBuilderEvents(editable) {
       await API.put('/meetings/' + m.id, {
         theme: document.getElementById('m-theme').value,
         venue: document.getElementById('m-venue').value,
+        footer_remarks: document.getElementById('m-footer-remarks').value,
       });
       toast(I18N.lang === 'zh' ? '已保存基本信息' : 'Basic info saved', 'success');
     } catch (err) { toast(err.message, 'error'); }

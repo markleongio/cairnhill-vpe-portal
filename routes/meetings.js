@@ -119,7 +119,7 @@ router.post('/', async (req, res) => {
     const clubSettings = await get('SELECT default_venue, meeting_time, dress_code FROM club_settings WHERE id = 1');
 
     const result = await run(
-      'INSERT INTO meetings (meeting_no, meeting_date, meeting_time, venue, theme, term_label, dress_code, created_by) VALUES (?,?,?,?,?,?,?,?)',
+      'INSERT INTO meetings (meeting_no, meeting_date, meeting_time, venue, theme, term_label, dress_code, footer_remarks, created_by) VALUES (?,?,?,?,?,?,?,?,?)',
       [
         b.meeting_no || null,
         b.meeting_date,
@@ -128,6 +128,7 @@ router.post('/', async (req, res) => {
         b.theme || null,
         b.term_label || null,
         b.dress_code || (clubSettings && clubSettings.dress_code) || null,
+        b.footer_remarks || null,
         req.session.userId,
       ]
     );
@@ -142,7 +143,7 @@ router.put('/:id', async (req, res) => {
   try {
     const fields = [
       'meeting_no', 'meeting_date', 'meeting_time', 'venue', 'theme', 'term_label',
-      'status', 'best_speaker_id', 'best_evaluator_id', 'best_table_topics_id', 'dress_code',
+      'status', 'best_speaker_id', 'best_evaluator_id', 'best_table_topics_id', 'dress_code', 'footer_remarks',
     ];
     const updates = [];
     const params = [];

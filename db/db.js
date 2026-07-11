@@ -80,6 +80,7 @@ const COLUMN_MIGRATIONS = [
   ['agenda_item_types', 'is_active', 'TINYINT NOT NULL DEFAULT 1'],
   ['meetings', 'start_time_for_calc', 'VARCHAR(20)'],
   ['pathways', 'is_active', 'TINYINT NOT NULL DEFAULT 1'],
+  ['meetings', 'footer_remarks', 'VARCHAR(1000)'],
 ];
 
 let schemaReadyPromise = null;

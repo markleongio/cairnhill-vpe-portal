@@ -258,19 +258,19 @@ table.data-table.clickable tr { cursor: pointer; }
   width: 68px; height: 60px;
   object-fit: contain;
 }
-.print-banner h1 { color: var(--paper-0); font-size: 30px; margin-bottom: 4px; }
-.print-banner .tagline { font-size: 12.5px; color: var(--gold-300); }
-.print-banner .meta { font-size: 11.5px; color: rgba(255,255,255,0.75); margin-top: 10px; }
+.print-banner h1 { color: var(--paper-0); font-size: 31px; margin-bottom: 4px; }
+.print-banner .tagline { font-size: 13.5px; color: var(--gold-300); }
+.print-banner .meta { font-size: 12.5px; color: rgba(255,255,255,0.75); margin-top: 10px; }
 .print-venue {
   background: var(--paper-100);
   text-align: center;
   padding: 8px;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--ink-700);
 }
 .print-mission {
   padding: 10px 24px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ink-700);
   border-bottom: 1px solid var(--line);
   text-align: center;
@@ -282,14 +282,14 @@ table.data-table.clickable tr { cursor: pointer; }
   padding: 9px;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 15px;
+  font-size: 16px;
 }
 .print-meeting-no {
   background: var(--jade-700);
   color: var(--paper-0);
   text-align: center;
   padding: 6px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
 }
 .print-body { display: flex; }
@@ -297,7 +297,7 @@ table.data-table.clickable tr { cursor: pointer; }
   width: 220px;
   flex-shrink: 0;
   border-right: 1px solid var(--line);
-  font-size: 11.5px;
+  font-size: 12.5px;
 }
 .print-exco-panel .term-label {
   background: var(--paper-100);
@@ -306,18 +306,18 @@ table.data-table.clickable tr { cursor: pointer; }
   color: var(--navy-900);
 }
 .exco-entry { padding: 7px 10px; border-bottom: 1px solid var(--line); }
-.exco-entry .role { font-weight: 700; color: var(--navy-900); font-size: 11.5px; }
+.exco-entry .role { font-weight: 700; color: var(--navy-900); font-size: 12.5px; }
 .exco-entry .name { margin-top: 2px; }
 .exco-entry .designation { color: var(--ink-500); }
-.exco-entry .memberno { color: var(--ink-300); font-size: 10.5px; }
+.exco-entry .memberno { color: var(--ink-300); font-size: 11.5px; }
 
 .print-agenda-panel { flex: 1; min-width: 0; }
-table.agenda-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.agenda-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 table.agenda-table th {
   background: var(--paper-100);
   text-align: left;
   padding: 6px 10px;
-  font-size: 10.5px;
+  font-size: 11.5px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--ink-500);
@@ -332,20 +332,20 @@ table.agenda-table .section-row td {
   font-weight: 700;
   color: var(--navy-900);
   font-family: var(--font-display);
-  font-size: 12.5px;
+  font-size: 13.5px;
 }
 table.agenda-table .summary-main { font-weight: 500; }
-table.agenda-table .summary-sub { color: var(--ink-500); font-size: 11px; margin-top: 1px; }
-table.agenda-table .resource-link { font-size: 10.5px; color: var(--navy-700); }
+table.agenda-table .summary-sub { color: var(--ink-500); font-size: 12px; margin-top: 1px; }
+table.agenda-table .resource-link { font-size: 11.5px; color: var(--navy-700); }
 table.agenda-table .role-col .person-entry { margin-bottom: 5px; }
 table.agenda-table .role-col .person-entry:last-child { margin-bottom: 0; }
 table.agenda-table .role-col .person-name { font-weight: 500; }
-table.agenda-table .role-col .person-designation { font-size: 10.5px; color: var(--ink-500); margin-top: 1px; }
-table.agenda-table .role-col .person-pathway { font-size: 10px; font-weight: 400; color: var(--navy-700); }
+table.agenda-table .role-col .person-designation { font-size: 11.5px; color: var(--ink-500); margin-top: 1px; }
+table.agenda-table .role-col .person-pathway { font-size: 11px; font-weight: 400; color: var(--navy-700); }
 .print-results-bar {
   background: var(--paper-100);
   padding: 10px 16px;
-  font-size: 11.5px;
+  font-size: 12.5px;
   display: flex;
   flex-wrap: wrap;
   gap: 18px;
@@ -355,9 +355,36 @@ table.agenda-table .role-col .person-pathway { font-size: 10px; font-weight: 400
   color: var(--paper-0);
   text-align: center;
   padding: 8px;
-  font-size: 11.5px;
+  font-size: 12.5px;
+}
+.print-remarks {
+  background: var(--paper-100);
+  color: var(--ink-700);
+  text-align: center;
+  padding: 8px 24px;
+  font-size: 12px;
+  border-top: 1px solid var(--line);
+}
+.print-pathway-legend {
+  padding: 10px 24px 12px;
+  border-top: 1px solid var(--line);
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
+.print-pathway-legend .legend-title {
+  font-weight: 700;
+  color: var(--navy-900);
+  font-size: 12px;
+  margin-bottom: 6px;
+  text-align: center;
+}
+.print-pathway-legend .legend-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px 12px;
+  font-size: 11.5px;
+  color: var(--ink-700);
+}
+.print-pathway-legend .legend-grid div { text-align: center; }
 
 @media print {
   .no-print { display: none !important; }

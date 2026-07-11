@@ -56,6 +56,8 @@ const I18N = {
     published_label: { zh: '已发布', en: 'Published' },
     edit_agenda: { zh: '编辑议程', en: 'Edit Agenda' },
     venue: { zh: '地点', en: 'Venue' },
+    footer_remarks: { zh: '备注（页脚显示）', en: 'Footer Remarks' },
+    footer_remarks_placeholder: { zh: '如有特别事项，将显示在议程打印稿底部', en: 'Optional notes shown at the bottom of the printed agenda' },
     save_basic_info: { zh: '保存基本信息', en: 'Save basic info' },
     agenda: { zh: '议程', en: 'Agenda' },
     add_segment: { zh: '新增环节', en: 'Add Segment' },
