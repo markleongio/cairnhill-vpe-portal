@@ -51,7 +51,8 @@ CREATE TABLE IF NOT EXISTS pathways (
   code          VARCHAR(10) NOT NULL UNIQUE,
   name_zh       VARCHAR(100) NOT NULL,
   name_en       VARCHAR(100),
-  sort_order    INT DEFAULT 0
+  sort_order    INT DEFAULT 0,
+  is_active     TINYINT NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
