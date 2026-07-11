@@ -16,16 +16,33 @@ async function loadExcoTerm(termLabel, terms) {
   }).join('');
 
   const rosterByRole = {};
-  roster.forEach(function (r) { rosterByRole[r.role_id] = r; });
+  roster.forEach(function (r) {
+    if (!rosterByRole[r.role_id]) rosterByRole[r.role_id] = [];
+    rosterByRole[r.role_id].push(r);
+  });
 
   const rows = Store.excoRoles.map(function (role) {
-    const r = rosterByRole[role.id];
+    const holders = rosterByRole[role.id] || [];
+    const holdersHtml = holders.length
+      ? holders.map(function (r) {
+          return '<div class="holder-row">' +
+            '<div class="member-cell"><div class="avatar-chip">' + escapeHtml(initials(r.full_name)) + '</div>' +
+              '<div><div>' + escapeHtml(r.full_name) + '</div>' +
+                '<div class="small muted">' + [r.designation, r.member_no].filter(Boolean).map(function (s) { return escapeHtml(s); }).join(' · ') + '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="no-print flex gap-4">' +
+              '<button class="btn btn-sm edit-holder-btn" data-role="' + role.id + '" data-member="' + r.member_id + '" data-designation="' + escapeHtml(r.designation || '') + '" data-name="' + escapeHtml(r.full_name) + '"><i class="ti ti-edit"></i></button>' +
+              '<button class="btn btn-sm btn-danger remove-holder-btn" data-role="' + role.id + '" data-member="' + r.member_id + '"><i class="ti ti-trash"></i></button>' +
+            '</div>' +
+          '</div>';
+        }).join('')
+      : '<span class="muted small">' + escapeHtml(t('not_assigned')) + '</span>';
+
     return '<tr>' +
       '<td><div style="font-weight:500">' + escapeHtml(role.role_name_zh) + '</div><div class="small muted">' + escapeHtml(role.role_name_en || '') + '</div></td>' +
-      '<td>' + (r ? '<div class="member-cell"><div class="avatar-chip">' + escapeHtml(initials(r.full_name)) + '</div><div>' + escapeHtml(r.full_name) + '</div></div>' : '<span class="muted small">' + escapeHtml(t('not_assigned')) + '</span>') + '</td>' +
-      '<td>' + (r && r.designation ? '<span class="badge badge-gold">' + escapeHtml(r.designation) + '</span>' : '') + '</td>' +
-      '<td>' + (r ? escapeHtml(r.member_no || '') : '') + '</td>' +
-      '<td class="no-print"><button class="btn btn-sm assign-btn" data-role="' + role.id + '" data-current="' + (r ? r.member_id : '') + '" data-designation="' + escapeHtml((r && r.designation) || '') + '">' + escapeHtml(t('assign_or_change')) + '</button></td>' +
+      '<td>' + holdersHtml + '</td>' +
+      '<td class="no-print"><button class="btn btn-sm add-holder-btn" data-role="' + role.id + '"><i class="ti ti-plus"></i> ' + escapeHtml(t('add')) + '</button></td>' +
     '</tr>';
   }).join('');
 
@@ -40,7 +57,7 @@ async function loadExcoTerm(termLabel, terms) {
     (terms.length
       ? '<div class="card card-pad">' +
           '<table class="data-table">' +
-            '<thead><tr><th>' + escapeHtml(t('position')) + '</th><th>' + escapeHtml(t('member_holding')) + '</th><th>' + escapeHtml(t('designation')) + '</th><th>' + escapeHtml(t('member_no_label')) + '</th><th></th></tr></thead>' +
+            '<thead><tr><th>' + escapeHtml(t('position')) + '</th><th>' + escapeHtml(t('member_holding')) + '</th><th></th></tr></thead>' +
             '<tbody>' + rows + '</tbody>' +
           '</table>' +
         '</div>'
@@ -57,27 +74,41 @@ async function loadExcoTerm(termLabel, terms) {
     openManageTermsModal(terms, termLabel);
   });
 
-  document.querySelectorAll('.assign-btn').forEach(function (btn) {
+  document.querySelectorAll('.add-holder-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      openAssignModal(termLabel, btn.dataset.role, btn.dataset.current, btn.dataset.designation, terms);
+      openAddHolderModal(termLabel, btn.dataset.role, terms);
+    });
+  });
+  document.querySelectorAll('.edit-holder-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      openEditHolderModal(termLabel, btn.dataset.role, btn.dataset.member, btn.dataset.name, btn.dataset.designation, terms);
+    });
+  });
+  document.querySelectorAll('.remove-holder-btn').forEach(function (btn) {
+    btn.addEventListener('click', async function () {
+      if (!confirm(I18N.lang === 'zh' ? '确定移除此人员？' : 'Remove this person from the role?')) return;
+      try {
+        await API.del('/exco/terms/' + encodeURIComponent(termLabel) + '/roles/' + btn.dataset.role + '/members/' + btn.dataset.member);
+        toast(I18N.lang === 'zh' ? '已移除' : 'Removed', 'success');
+        loadExcoTerm(termLabel, terms);
+      } catch (err) { toast(err.message, 'error'); }
     });
   });
 }
 
-function openAssignModal(termLabel, roleId, currentMemberId, currentDesignation, terms) {
+function openAddHolderModal(termLabel, roleId, terms) {
   const memberOptions = Store.members.map(function (mb) {
-    const sel = String(mb.id) === currentMemberId ? ' selected' : '';
-    return '<option value="' + mb.id + '"' + sel + '>' + escapeHtml(mb.full_name) + '</option>';
+    return '<option value="' + mb.id + '">' + escapeHtml(mb.full_name) + '</option>';
   }).join('');
 
   const wrap = document.createElement('div');
   wrap.className = 'modal-backdrop';
   wrap.innerHTML =
     '<div class="modal">' +
-      '<div class="modal-head"><h3>' + escapeHtml(t('assign_or_change')) + '</h3><button class="modal-close" id="modal-close">&times;</button></div>' +
+      '<div class="modal-head"><h3>' + escapeHtml(t('add')) + '</h3><button class="modal-close" id="modal-close">&times;</button></div>' +
       '<div class="modal-body">' +
         '<div class="field"><label>' + escapeHtml(t('member_holding')) + '</label><select id="f-member">' + memberOptions + '</select></div>' +
-        '<div class="field"><label>' + escapeHtml(t('designation')) + '</label><input type="text" id="f-designation" value="' + escapeHtml(currentDesignation || '') + '" placeholder="DTM, CTM/CL/PM1"></div>' +
+        '<div class="field"><label>' + escapeHtml(t('designation')) + '</label><input type="text" id="f-designation" placeholder="DTM, CTM/CL/PM1"></div>' +
       '</div>' +
       '<div class="modal-foot"><button class="btn" id="cancel-btn">' + escapeHtml(t('cancel')) + '</button><button class="btn btn-primary" id="save-btn"><i class="ti ti-check"></i> ' + escapeHtml(t('save')) + '</button></div>' +
     '</div>';
@@ -94,7 +125,40 @@ function openAssignModal(termLabel, roleId, currentMemberId, currentDesignation,
         member_id: Number(document.getElementById('f-member').value),
         designation: document.getElementById('f-designation').value,
       });
-      toast(I18N.lang === 'zh' ? '已指派职务' : 'Role assigned', 'success');
+      toast(I18N.lang === 'zh' ? '已新增' : 'Added', 'success');
+      close();
+      loadExcoTerm(termLabel, terms);
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  });
+}
+
+function openEditHolderModal(termLabel, roleId, memberId, memberName, currentDesignation, terms) {
+  const wrap = document.createElement('div');
+  wrap.className = 'modal-backdrop';
+  wrap.innerHTML =
+    '<div class="modal">' +
+      '<div class="modal-head"><h3>' + escapeHtml(t('edit')) + ' — ' + escapeHtml(memberName) + '</h3><button class="modal-close" id="modal-close">&times;</button></div>' +
+      '<div class="modal-body">' +
+        '<div class="field"><label>' + escapeHtml(t('designation')) + '</label><input type="text" id="f-designation" value="' + escapeHtml(currentDesignation || '') + '" placeholder="DTM, CTM/CL/PM1"></div>' +
+      '</div>' +
+      '<div class="modal-foot"><button class="btn" id="cancel-btn">' + escapeHtml(t('cancel')) + '</button><button class="btn btn-primary" id="save-btn"><i class="ti ti-check"></i> ' + escapeHtml(t('save')) + '</button></div>' +
+    '</div>';
+  document.body.appendChild(wrap);
+
+  function close() { wrap.remove(); }
+  wrap.addEventListener('click', function (e) { if (e.target === wrap) close(); });
+  document.getElementById('modal-close').addEventListener('click', close);
+  document.getElementById('cancel-btn').addEventListener('click', close);
+  document.getElementById('save-btn').addEventListener('click', async function () {
+    try {
+      await API.post('/exco/terms/' + encodeURIComponent(termLabel) + '/assign', {
+        role_id: Number(roleId),
+        member_id: Number(memberId),
+        designation: document.getElementById('f-designation').value,
+      });
+      toast(I18N.lang === 'zh' ? '已保存' : 'Saved', 'success');
       close();
       loadExcoTerm(termLabel, terms);
     } catch (err) {

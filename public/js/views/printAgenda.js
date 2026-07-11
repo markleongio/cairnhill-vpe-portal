@@ -67,11 +67,23 @@ async function renderPrintAgenda(meetingId) {
     return rows;
   }).join('');
 
-  const excoRows = (m.exco || []).map(function (e) {
+  const excoByRole = [];
+  const excoRoleIndex = {};
+  (m.exco || []).forEach(function (e) {
+    if (excoRoleIndex[e.role_id] === undefined) {
+      excoRoleIndex[e.role_id] = excoByRole.length;
+      excoByRole.push({ role_name_zh: e.role_name_zh, holders: [] });
+    }
+    excoByRole[excoRoleIndex[e.role_id]].holders.push(e);
+  });
+  const excoRows = excoByRole.map(function (group) {
     return '<div class="exco-entry">' +
-      '<div class="role">' + escapeHtml(e.role_name_zh) + '</div>' +
-      '<div class="name">' + escapeHtml(e.full_name) + (e.designation ? ' <span class="designation">' + escapeHtml(e.designation) + '</span>' : '') + '</div>' +
-      (e.member_no ? '<div class="memberno">' + escapeHtml(e.member_no) + '</div>' : '') +
+      '<div class="role">' + escapeHtml(group.role_name_zh) + '</div>' +
+      group.holders.map(function (e) {
+        return '<div class="name">' + escapeHtml(e.full_name) + (e.designation ? ' <span class="designation">' + escapeHtml(e.designation) + '</span>' : '') +
+          (e.member_no ? ' <span class="memberno">' + escapeHtml(e.member_no) + '</span>' : '') +
+        '</div>';
+      }).join('') +
     '</div>';
   }).join('');
 

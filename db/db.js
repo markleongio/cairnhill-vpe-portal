@@ -154,7 +154,92 @@ async function ensureSchema() {
         );
       }
 
+      // Allow multiple members to hold the same exco role concurrently: the
+      // original unique key (term_label, role_id) permitted only one holder
+      // per role per term. Widening it to include member_id still prevents
+      // the same member being assigned to the same role twice, but allows
+      // different members to co-hold a role (e.g. two Founding Sponsors).
+      const [oldExcoKey] = await conn.query(
+        "SELECT COUNT(*) AS cnt FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'exco_terms' AND index_name = 'uniq_term_role'"
+      );
+      if (oldExcoKey[0].cnt > 0 && oldExcoKey[0].cnt < 3) {
+        await conn.query('ALTER TABLE exco_terms DROP INDEX uniq_term_role');
+        await conn.query('ALTER TABLE exco_terms ADD UNIQUE KEY uniq_term_role_member (term_label, role_id, member_id)');
+        console.log('Migration: widened exco_terms unique key to (term_label, role_id, member_id)');
+      }
+
       console.log('Database schema and indexes verified/applied.');
+
+      // Content seed: populate the pathway project library with the
+      // official Toastmasters required-project curriculum, sourced from
+      // Toastmasters International's "Pathways Competencies by Path"
+      // catalog (toastmasters.org). This only fills the level/project slots
+      // for a given (level_id, project_no) that are still empty — it uses
+      // INSERT IGNORE against the existing UNIQUE KEY, so any project
+      // already added by hand (e.g. the original PM Level 1 / IP Level 2
+      // seed data) is left untouched rather than being overwritten.
+      // Level 1 is identical across every path; Levels 2-5 are path-specific.
+      // This covers the required projects only — Pathways also offers a
+      // shared pool of elective projects members can choose per level,
+      // which isn't seeded here since the choice is member-specific.
+      const evalFormUrl2 = 'https://www.toastmasters.org/-/media/files/department-documents/pathways-program-documents/evaluation-forms';
+      const COMMON_L1 = [
+        [1, '破冰演讲'],
+        [2, '有目的的演讲写作'],
+        [3, '声音变化与肢体语言入门'],
+        [4, '评估与反馈'],
+      ];
+      const PATHWAY_PROJECT_SEED = {
+        PM: { 2: [[1, '认识你的沟通风格'], [2, '有效的肢体语言'], [3, '认识导师计划']], 3: [[1, '说服性演讲']], 4: [[1, '应对难缠的听众']], 5: [[1, '准备专业演讲'], [2, '回顾你的学习路径']] },
+        EH: { 2: [[1, '与听众建立连结'], [2, '认识你的幽默感'], [3, '认识导师计划']], 3: [[1, '用幽默吸引听众']], 4: [[1, '即席演讲中的幽默力量']], 5: [[1, '用幽默传递你的信息'], [2, '回顾你的学习路径']] },
+        PI: { 2: [[1, '积极聆听'], [2, '认识你的领导风格'], [3, '认识导师计划']], 3: [[1, '认识冲突化解']], 4: [[1, '在困境中领导']], 5: [[1, '高效领导力'], [2, '回顾你的学习路径']] },
+        DL: { 2: [[1, '认识你的领导风格'], [2, '认识你的沟通风格'], [3, '认识导师计划']], 3: [[1, '协商达成最佳结果']], 4: [[1, '管理变革']], 5: [[1, '在任何情境下领导'], [2, '回顾你的学习路径']] },
+        VC: { 2: [[1, '认识你的领导风格'], [2, '认识你的沟通风格'], [3, '认识导师计划']], 3: [[1, '制定沟通计划']], 4: [[1, '沟通变革']], 5: [[1, '制定你的愿景'], [2, '回顾你的学习路径']] },
+        MS: { 2: [[1, '积极聆听'], [2, '认识你的沟通风格'], [3, '认识导师计划']], 3: [[1, '认识情商']], 4: [[1, '激励他人']], 5: [[1, '团队建设'], [2, '回顾你的学习路径']] },
+        IP: { 2: [[1, '认识你的领导风格'], [2, '与听众建立连结'], [3, '认识导师计划']], 3: [[1, '提案演讲']], 4: [[1, '成功管理项目']], 5: [[1, '高效领导力'], [2, '回顾你的学习路径']] },
+        SR: { 2: [[1, '认识你的领导风格'], [2, '积极聆听'], [3, '认识导师计划']], 3: [[1, '透过人脉建立连结']], 4: [[1, '公共关系策略']], 5: [[1, '在志愿组织中领导'], [2, '回顾你的学习路径']] },
+        EC: { 2: [[1, '认识你的领导风格'], [2, '认识你的沟通风格'], [3, '认识导师计划']], 3: [[1, '达成共识']], 4: [[1, '透过教练促进积极改善']], 5: [[1, '高效领导力'], [2, '回顾你的学习路径']] },
+        LD: { 2: [[1, '时间管理'], [2, '认识你的领导风格'], [3, '认识导师计划']], 3: [[1, '规划与执行']], 4: [[1, '领导你的团队']], 5: [[1, '成功筹办活动'], [2, '回顾你的学习路径']] },
+        TC: { 2: [[1, '认识你的领导风格'], [2, '积极聆听'], [3, '认识导师计划']], 3: [[1, '成功协作']], 4: [[1, '激励他人']], 5: [[1, '在任何情境下领导'], [2, '回顾你的学习路径']] },
+      };
+
+      const [seedPathways] = await conn.query('SELECT id, code FROM pathways');
+      const [seedLevels] = await conn.query('SELECT id, pathway_id, level_no FROM pathway_levels');
+      const levelIdByCode = {};
+      for (const p of seedPathways) {
+        for (const l of seedLevels) {
+          if (l.pathway_id === p.id) levelIdByCode[p.code + '-' + l.level_no] = l.id;
+        }
+      }
+
+      let seededProjects = 0;
+      for (const code of Object.keys(PATHWAY_PROJECT_SEED)) {
+        const level1Id = levelIdByCode[code + '-1'];
+        if (level1Id) {
+          for (const [projectNo, nameZh] of COMMON_L1) {
+            const [r] = await conn.query(
+              'INSERT IGNORE INTO pathway_projects (level_id, project_no, project_name_zh, default_time_min, default_time_max, evaluation_form_url) VALUES (?,?,?,?,?,?)',
+              [level1Id, projectNo, nameZh, 5, 7, evalFormUrl2]
+            );
+            if (r.affectedRows > 0) seededProjects++;
+          }
+        }
+        const levels = PATHWAY_PROJECT_SEED[code];
+        for (const levelNo of Object.keys(levels)) {
+          const levelId = levelIdByCode[code + '-' + levelNo];
+          if (!levelId) continue;
+          for (const [projectNo, nameZh] of levels[levelNo]) {
+            const [r] = await conn.query(
+              'INSERT IGNORE INTO pathway_projects (level_id, project_no, project_name_zh, default_time_min, default_time_max, evaluation_form_url) VALUES (?,?,?,?,?,?)',
+              [levelId, projectNo, nameZh, 5, 7, evalFormUrl2]
+            );
+            if (r.affectedRows > 0) seededProjects++;
+          }
+        }
+      }
+      if (seededProjects > 0) {
+        console.log(`Migration: seeded ${seededProjects} pathway project(s) from the official Toastmasters curriculum`);
+      }
     } finally {
       await conn.end();
     }

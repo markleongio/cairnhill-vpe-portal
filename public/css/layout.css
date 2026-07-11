@@ -172,6 +172,9 @@ table.data-table.clickable tr { cursor: pointer; }
   flex-shrink: 0;
 }
 
+.holder-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; }
+.holder-row + .holder-row { border-top: 1px solid var(--line); }
+
 /* ---------- Stat cards ---------- */
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 22px; }
 .stat-card { background: var(--paper-0); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 16px 18px; }

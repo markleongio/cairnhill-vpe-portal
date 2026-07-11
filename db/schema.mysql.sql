@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS exco_terms (
   designation   VARCHAR(100),
   start_date    DATE,
   end_date      DATE,
-  UNIQUE KEY uniq_term_role (term_label, role_id),
+  UNIQUE KEY uniq_term_role_member (term_label, role_id, member_id),
   FOREIGN KEY (role_id) REFERENCES exco_roles(id),
   FOREIGN KEY (member_id) REFERENCES members(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

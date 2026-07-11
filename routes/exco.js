@@ -126,6 +126,22 @@ router.delete('/terms/:termLabel/roles/:roleId', async (req, res) => {
   }
 });
 
+// Removes a single holder from a role without affecting any co-holders of
+// the same role (the role-only delete above still exists for backward
+// compatibility but will remove everyone assigned to that role).
+router.delete('/terms/:termLabel/roles/:roleId/members/:memberId', async (req, res) => {
+  try {
+    await run(
+      'DELETE FROM exco_terms WHERE term_label = ? AND role_id = ? AND member_id = ?',
+      [decodeURIComponent(req.params.termLabel), req.params.roleId, req.params.memberId]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.get('/members/:memberId/history', async (req, res) => {
   try {
     const rows = await all(
