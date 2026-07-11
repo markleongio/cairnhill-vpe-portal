@@ -15,8 +15,25 @@ async function renderPrintAgenda(meetingId) {
       sectionLastSeen = null;
     }
 
-    const speaker = row.speaker_name || row.speaker_guest_name || '';
-    const responsible = row.responsible_name || row.responsible_label || '';
+    const speakerSplit = row.speaker_is_guest
+      ? splitNameDesignation(row.speaker_guest_name)
+      : {
+          name: row.speaker_name || '',
+          designation: '',
+          pathwayBadge: row.speaker_member_id && row.speaker_primary_pathway_code
+            ? row.speaker_primary_pathway_code + (row.speaker_primary_level ? ' L' + row.speaker_primary_level : '')
+            : '',
+        };
+    const responsibleSplit = row.responsible_is_guest
+      ? splitNameDesignation(row.responsible_label)
+      : {
+          name: row.responsible_name || row.responsible_label || '',
+          designation: '',
+          pathwayBadge: row.responsible_member_id && row.responsible_primary_pathway_code
+            ? row.responsible_primary_pathway_code + (row.responsible_primary_level ? ' L' + row.responsible_primary_level : '')
+            : '',
+        };
+
     const summarySub = [
       row.summary_zh || '',
       row.speech_title ? '题目：' + row.speech_title : '',
@@ -25,7 +42,18 @@ async function renderPrintAgenda(meetingId) {
       row.evaluates_speaker_name || row.evaluates_guest_name ? '评论：' + (row.evaluates_speaker_name || row.evaluates_guest_name) : '',
     ].filter(Boolean).join('　');
 
-    const personCell = [speaker, responsible].filter(function (v, i, a) { return v && a.indexOf(v) === i; }).join(' / ') || '—';
+    const personEntries = [speakerSplit, responsibleSplit].filter(function (p, i, arr) {
+      return p.name && arr.findIndex(function (x) { return x.name === p.name; }) === i;
+    });
+    const personCellHtml = personEntries.length
+      ? personEntries.map(function (p) {
+          return '<div class="person-entry"><div class="person-name">' + escapeHtml(p.name) +
+            (p.pathwayBadge ? ' <span class="person-pathway">' + escapeHtml(p.pathwayBadge) + '</span>' : '') +
+          '</div>' +
+            (p.designation ? '<div class="person-designation">' + escapeHtml(p.designation) + '</div>' : '') +
+          '</div>';
+        }).join('')
+      : '—';
 
     rows += '<tr>' +
       '<td class="time-col">' + (row.scheduled_time || '') + '</td>' +
@@ -34,7 +62,7 @@ async function renderPrintAgenda(meetingId) {
         (row.resource_url ? '<div class="summary-sub resource-link"><i class="ti ti-link" style="font-size:10px;"></i> <a href="' + escapeHtml(row.resource_url) + '" target="_blank">' + escapeHtml(row.resource_label || '相关资源') + '</a></div>' : '') +
       '</td>' +
       '<td class="limit-col">' + (row.time_limit_min ? row.time_limit_min + (row.time_limit_max ? '-' + row.time_limit_max : '') : '') + '</td>' +
-      '<td class="role-col">' + escapeHtml(personCell) + '</td>' +
+      '<td class="role-col">' + personCellHtml + '</td>' +
     '</tr>';
     return rows;
   }).join('');
@@ -112,6 +140,17 @@ async function renderPrintAgenda(meetingId) {
 function memberName(id) {
   const found = Store.members.filter(function (x) { return x.id === Number(id); })[0];
   return found ? found.full_name : '';
+}
+
+// Splits free-text like "邱兰英 L5分区总监" into { name: "邱兰英", designation: "L5分区总监" }
+// on the first space. Only meant for guest name fields — registered members'
+// full_name has no embedded designation and is never passed through this.
+function splitNameDesignation(text) {
+  if (!text) return { name: '', designation: '' };
+  const trimmed = text.trim();
+  const idx = trimmed.indexOf(' ');
+  if (idx === -1) return { name: trimmed, designation: '' };
+  return { name: trimmed.slice(0, idx).trim(), designation: trimmed.slice(idx + 1).trim() };
 }
 
 // Loads html2canvas once, from CDN, and caches the loading promise so

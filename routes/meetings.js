@@ -60,6 +60,8 @@ router.get('/:id', async (req, res) => {
       'rm.full_name AS responsible_name, rm.chinese_name AS responsible_chinese_name, ' +
       'p.name_zh AS pathway_name, p.code AS pathway_code, ' +
       'pp.project_name_zh, pl.level_no, ' +
+      'sp.code AS speaker_primary_pathway_code, smp.current_level AS speaker_primary_level, ' +
+      'rp.code AS responsible_primary_pathway_code, rmp.current_level AS responsible_primary_level, ' +
       'eval_row.summary_zh AS evaluates_summary, eval_sm.full_name AS evaluates_speaker_name, eval_row.speaker_guest_name AS evaluates_guest_name ' +
       'FROM meeting_agenda ma ' +
       'JOIN agenda_item_types ait ON ma.item_type_id = ait.id ' +
@@ -68,6 +70,10 @@ router.get('/:id', async (req, res) => {
       'LEFT JOIN pathways p ON ma.pathway_id = p.id ' +
       'LEFT JOIN pathway_projects pp ON ma.pathway_project_id = pp.id ' +
       'LEFT JOIN pathway_levels pl ON pp.level_id = pl.id ' +
+      'LEFT JOIN member_progress smp ON smp.member_id = ma.speaker_member_id AND smp.is_primary_pathway = 1 ' +
+      'LEFT JOIN pathways sp ON sp.id = smp.pathway_id ' +
+      'LEFT JOIN member_progress rmp ON rmp.member_id = ma.responsible_member_id AND rmp.is_primary_pathway = 1 ' +
+      'LEFT JOIN pathways rp ON rp.id = rmp.pathway_id ' +
       'LEFT JOIN meeting_agenda eval_row ON ma.evaluates_agenda_id = eval_row.id ' +
       'LEFT JOIN members eval_sm ON eval_row.speaker_member_id = eval_sm.id ' +
       'WHERE ma.meeting_id = ? ORDER BY ma.sort_order',

@@ -334,6 +334,11 @@ table.agenda-table .section-row td {
 table.agenda-table .summary-main { font-weight: 500; }
 table.agenda-table .summary-sub { color: var(--ink-500); font-size: 11px; margin-top: 1px; }
 table.agenda-table .resource-link { font-size: 10.5px; color: var(--navy-700); }
+table.agenda-table .role-col .person-entry { margin-bottom: 5px; }
+table.agenda-table .role-col .person-entry:last-child { margin-bottom: 0; }
+table.agenda-table .role-col .person-name { font-weight: 500; }
+table.agenda-table .role-col .person-designation { font-size: 10.5px; color: var(--ink-500); margin-top: 1px; }
+table.agenda-table .role-col .person-pathway { font-size: 10px; font-weight: 400; color: var(--navy-700); }
 .print-results-bar {
   background: var(--paper-100);
   padding: 10px 16px;
