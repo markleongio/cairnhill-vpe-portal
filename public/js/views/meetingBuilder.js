@@ -191,7 +191,7 @@ function renderAgendaRow(row, editable) {
         (editable ? '<i class="ti ti-grip-vertical drag-handle"></i>' : '') +
         '<div class="agenda-row-time">' + (row.scheduled_time || '') + '</div>' +
         '<div class="agenda-row-summary">' +
-          '<div class="title">' + escapeHtml(row.summary_zh) + '</div>' +
+          '<div class="title">' + escapeHtml(row.type_label || '') + (row.summary_zh ? '　' + escapeHtml(row.summary_zh) : '') + '</div>' +
           '<div class="sub">' + [speakerLabel, respLabel, row.speech_title, evalSub].filter(Boolean).map(function (s) { return escapeHtml(s); }).join(' · ') + '</div>' +
         '</div>' +
         '<div class="agenda-row-meta">' + metaBadges +
