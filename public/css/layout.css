@@ -251,13 +251,9 @@ table.data-table.clickable tr { cursor: pointer; }
   position: relative;
 }
 .print-banner .crest-logo {
-  position: absolute; left: 24px; top: 50%; transform: translateY(-50%);
-  width: 56px; height: 56px;
-  border-radius: 50%;
-  background: var(--paper-0);
+  position: absolute; left: 22px; top: 50%; transform: translateY(-50%);
+  width: 68px; height: 60px;
   object-fit: contain;
-  padding: 4px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 }
 .print-banner h1 { color: var(--paper-0); font-size: 30px; margin-bottom: 4px; }
 .print-banner .tagline { font-size: 12.5px; color: var(--gold-300); }
