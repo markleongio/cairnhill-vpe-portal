@@ -8,6 +8,7 @@ async function renderMasters() {
 async function loadMastersContent() {
   const itemTypes = await API.get('/masters/item-types');
   const meetingRoles = await API.get('/masters/meeting-roles');
+  const pathways = await API.get('/pathways?all=true');
   const clubSettings = await API.get('/club');
 
   const itemTypeRows = itemTypes.map(function (it) {
@@ -24,6 +25,19 @@ async function loadMastersContent() {
       '<td class="no-print flex gap-8">' +
         '<button class="btn btn-sm edit-itemtype-btn" data-id="' + it.id + '"><i class="ti ti-edit"></i></button>' +
         '<button class="btn btn-sm btn-danger del-itemtype-btn" data-id="' + it.id + '"><i class="ti ti-trash"></i></button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+
+  const pathwayRows = pathways.map(function (p) {
+    return '<tr>' +
+      '<td><code class="small">' + escapeHtml(p.code) + '</code></td>' +
+      '<td>' + escapeHtml(p.name_zh) + '</td>' +
+      '<td>' + escapeHtml(p.name_en || '—') + '</td>' +
+      '<td><span class="badge ' + (p.is_active ? 'badge-jade' : 'badge-gray') + '">' + (p.is_active ? t('active_label') : t('inactive_label')) + '</span></td>' +
+      '<td class="no-print flex gap-8">' +
+        '<button class="btn btn-sm edit-pathway-btn" data-id="' + p.id + '"><i class="ti ti-edit"></i></button>' +
+        '<button class="btn btn-sm btn-danger del-pathway-btn" data-id="' + p.id + '"><i class="ti ti-trash"></i></button>' +
       '</td>' +
     '</tr>';
   }).join('');
@@ -65,6 +79,15 @@ async function loadMastersContent() {
       '<div class="field"><label>' + escapeHtml(t('mission_statement_label')) + '</label><textarea id="cs-mission">' + escapeHtml(clubSettings.mission_statement || '') + '</textarea></div>' +
       '<div class="field"><label>' + escapeHtml(t('dress_code_label')) + '</label><input type="text" id="cs-dress" value="' + escapeHtml(clubSettings.dress_code || '') + '"></div>' +
       '<button class="btn btn-primary btn-sm" id="save-club-btn"><i class="ti ti-device-floppy"></i> ' + escapeHtml(t('save_club_settings')) + '</button>' +
+    '</div>' +
+
+    '<div class="card card-pad mt-24">' +
+      '<div class="flex justify-between items-center"><h2>' + escapeHtml(t('pathways_master_section')) + '</h2>' +
+        '<button class="btn btn-primary btn-sm" id="add-pathway-btn"><i class="ti ti-plus"></i> ' + escapeHtml(t('add')) + '</button></div>' +
+      '<table class="data-table mt-16">' +
+        '<thead><tr><th>' + escapeHtml(t('pathway_code_label')) + '</th><th>' + escapeHtml(t('pathway_name_zh_label')) + '</th><th>' + escapeHtml(t('pathway_name_en_label')) + '</th><th>' + escapeHtml(t('status')) + '</th><th></th></tr></thead>' +
+        '<tbody>' + (pathwayRows || '<tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">—</td></tr>') + '</tbody>' +
+      '</table>' +
     '</div>' +
 
     '<div class="card card-pad mt-24">' +
@@ -117,6 +140,25 @@ async function loadMastersContent() {
       if (!confirm(I18N.lang === 'zh' ? '确定停用此类型？' : 'Deactivate this type?')) return;
       try {
         await API.del('/masters/item-types/' + btn.dataset.id);
+        toast(I18N.lang === 'zh' ? '已停用' : 'Deactivated', 'success');
+        await Store.loadReferenceData();
+        loadMastersContent();
+      } catch (err) { toast(err.message, 'error'); }
+    });
+  });
+
+  document.getElementById('add-pathway-btn').addEventListener('click', function () { openPathwayModal(null); });
+  document.querySelectorAll('.edit-pathway-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const p = pathways.filter(function (x) { return x.id === Number(btn.dataset.id); })[0];
+      openPathwayModal(p);
+    });
+  });
+  document.querySelectorAll('.del-pathway-btn').forEach(function (btn) {
+    btn.addEventListener('click', async function () {
+      if (!confirm(t('confirm_deactivate_pathway'))) return;
+      try {
+        await API.del('/pathways/' + btn.dataset.id);
         toast(I18N.lang === 'zh' ? '已停用' : 'Deactivated', 'success');
         await Store.loadReferenceData();
         loadMastersContent();
@@ -187,6 +229,53 @@ function openItemTypeModal(existing) {
         if (!key) { toast(I18N.lang === 'zh' ? '请输入类型代码' : 'Please enter a type key', 'error'); return; }
         body.type_key = key;
         await API.post('/masters/item-types', body);
+      }
+      toast(I18N.lang === 'zh' ? '已保存' : 'Saved', 'success');
+      close();
+      await Store.loadReferenceData();
+      loadMastersContent();
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  });
+}
+
+function openPathwayModal(existing) {
+  const isEdit = !!existing;
+  const wrap = document.createElement('div');
+  wrap.className = 'modal-backdrop';
+  wrap.innerHTML =
+    '<div class="modal">' +
+      '<div class="modal-head"><h3>' + escapeHtml(isEdit ? t('edit') : t('add')) + ' — ' + escapeHtml(t('pathways_master_section')) + '</h3><button class="modal-close" id="modal-close">&times;</button></div>' +
+      '<div class="modal-body">' +
+        '<div class="field"><label>' + escapeHtml(t('pathway_code_label')) + ' *</label><input type="text" id="f-code" value="' + (existing ? escapeHtml(existing.code) : '') + '" placeholder="PM"></div>' +
+        '<div class="field"><label>' + escapeHtml(t('pathway_name_zh_label')) + ' *</label><input type="text" id="f-zh" value="' + (existing ? escapeHtml(existing.name_zh) : '') + '" placeholder="精通演说"></div>' +
+        '<div class="field"><label>' + escapeHtml(t('pathway_name_en_label')) + '</label><input type="text" id="f-en" value="' + (existing && existing.name_en ? escapeHtml(existing.name_en) : '') + '" placeholder="Persuasive Influence"></div>' +
+        (isEdit ? '<div class="field"><label><input type="checkbox" id="f-active" style="width:auto;display:inline-block;margin-right:6px;" ' + (existing.is_active ? 'checked' : '') + '> ' + escapeHtml(t('active_label')) + '</label></div>' : '') +
+      '</div>' +
+      '<div class="modal-foot"><button class="btn" id="cancel-btn">' + escapeHtml(t('cancel')) + '</button><button class="btn btn-primary" id="save-btn"><i class="ti ti-check"></i> ' + escapeHtml(t('save')) + '</button></div>' +
+    '</div>';
+  document.body.appendChild(wrap);
+
+  function close() { wrap.remove(); }
+  wrap.addEventListener('click', function (e) { if (e.target === wrap) close(); });
+  document.getElementById('modal-close').addEventListener('click', close);
+  document.getElementById('cancel-btn').addEventListener('click', close);
+  document.getElementById('save-btn').addEventListener('click', async function () {
+    const body = {
+      code: document.getElementById('f-code').value.trim(),
+      name_zh: document.getElementById('f-zh').value.trim(),
+      name_en: document.getElementById('f-en').value.trim() || null,
+    };
+    if (!body.code) { toast(I18N.lang === 'zh' ? '请输入路径代码' : 'Please enter a pathway code', 'error'); return; }
+    if (!body.name_zh) { toast(I18N.lang === 'zh' ? '请输入中文名称' : 'Please enter a Chinese name', 'error'); return; }
+    if (isEdit) body.is_active = document.getElementById('f-active').checked ? 1 : 0;
+
+    try {
+      if (isEdit) {
+        await API.put('/pathways/' + existing.id, body);
+      } else {
+        await API.post('/pathways', body);
       }
       toast(I18N.lang === 'zh' ? '已保存' : 'Saved', 'success');
       close();

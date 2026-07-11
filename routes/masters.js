@@ -5,6 +5,7 @@
 // presented together in one settings screen on the frontend.
 const express = require('express');
 const { all, get, run } = require('../db/db');
+const { requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ router.get('/item-types', async (req, res) => {
   }
 });
 
-router.post('/item-types', async (req, res) => {
+router.post('/item-types', requireAdmin, async (req, res) => {
   try {
     const b = req.body;
     if (!b.type_key || !b.label_zh) return res.status(400).json({ error: 'type_key and label_zh required' });
@@ -34,7 +35,7 @@ router.post('/item-types', async (req, res) => {
   }
 });
 
-router.put('/item-types/:id', async (req, res) => {
+router.put('/item-types/:id', requireAdmin, async (req, res) => {
   try {
     const fields = ['type_key', 'label_zh', 'label_en', 'requires_pathway', 'requires_evaluator', 'requires_evaluates_selection', 'is_active'];
     const updates = [];
@@ -57,7 +58,7 @@ router.put('/item-types/:id', async (req, res) => {
 
 // Soft-delete by default (is_active = 0) since existing agenda rows may
 // reference this type; hard delete only if ?force=true and nothing references it.
-router.delete('/item-types/:id', async (req, res) => {
+router.delete('/item-types/:id', requireAdmin, async (req, res) => {
   try {
     if (req.query.force === 'true') {
       const inUse = await get('SELECT COUNT(*) AS c FROM meeting_agenda WHERE item_type_id = ?', [req.params.id]);
@@ -86,7 +87,7 @@ router.get('/meeting-roles', async (req, res) => {
   }
 });
 
-router.post('/meeting-roles', async (req, res) => {
+router.post('/meeting-roles', requireAdmin, async (req, res) => {
   try {
     const b = req.body;
     if (!b.role_name_zh) return res.status(400).json({ error: 'role_name_zh required' });
@@ -103,7 +104,7 @@ router.post('/meeting-roles', async (req, res) => {
   }
 });
 
-router.put('/meeting-roles/:id', async (req, res) => {
+router.put('/meeting-roles/:id', requireAdmin, async (req, res) => {
   try {
     const fields = ['role_name_zh', 'role_name_en', 'sort_order', 'is_active'];
     const updates = [];
@@ -124,7 +125,7 @@ router.put('/meeting-roles/:id', async (req, res) => {
   }
 });
 
-router.delete('/meeting-roles/:id', async (req, res) => {
+router.delete('/meeting-roles/:id', requireAdmin, async (req, res) => {
   try {
     if (req.query.force === 'true') {
       const inUse = await get('SELECT COUNT(*) AS c FROM meeting_role_assignments WHERE role_id = ?', [req.params.id]);

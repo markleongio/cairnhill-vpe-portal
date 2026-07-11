@@ -53,14 +53,7 @@ app.use(
 );
 
 // --- Auth gate for API routes -----------------------------------------------
-function requireAuth(req, res, next) {
-  if (req.session && req.session.userId) return next();
-  return res.status(401).json({ error: '未登录 / Not authenticated' });
-}
-function requireAdmin(req, res, next) {
-  if (req.session && (req.session.role === 'admin' || req.session.role === 'exco')) return next();
-  return res.status(403).json({ error: '权限不足 / Insufficient permissions' });
-}
+const { requireAuth, requireAdmin } = require('./middleware/auth');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/members', requireAuth, memberRoutes);

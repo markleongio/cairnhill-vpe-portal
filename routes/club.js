@@ -3,6 +3,7 @@
 // number, default meeting venue/day/time, mission statement, etc.
 const express = require('express');
 const { get, run } = require('../db/db');
+const { requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -20,7 +21,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.put('/', async (req, res) => {
+router.put('/', requireAdmin, async (req, res) => {
   try {
     const fields = [
       'club_name_zh', 'club_name_en', 'club_number', 'district_label',

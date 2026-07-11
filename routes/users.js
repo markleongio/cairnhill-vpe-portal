@@ -2,6 +2,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { all, get, run } = require('../db/db');
+const { requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireAdmin, async (req, res) => {
   try {
     const b = req.body;
     if (!b.username || !b.password) {
@@ -42,7 +43,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update username / role / linked member / (optionally) password
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAdmin, async (req, res) => {
   try {
     const b = req.body;
     const updates = [];
@@ -66,7 +67,7 @@ router.put('/:id', async (req, res) => {
 // Delete a user account. Admins can delete other admins (per requirement),
 // but we block deleting your own currently-logged-in account to avoid
 // accidentally locking yourself out with no one left to log back in as.
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res) => {
   try {
     if (Number(req.params.id) === req.session.userId) {
       return res.status(400).json({ error: '不能删除自己当前登录的账号 / Cannot delete the account you are currently logged in as' });
