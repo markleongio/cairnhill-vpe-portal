@@ -186,21 +186,19 @@ async function ensureSchema() {
       // Content seed: populate the pathway project library with the
       // official Toastmasters required-project curriculum, sourced from
       // Toastmasters International's "Pathways Competencies by Path"
-      // catalog (toastmasters.org). This only fills the level/project slots
-      // for a given (level_id, project_no) that are still empty — it uses
-      // INSERT IGNORE against the existing UNIQUE KEY, so any project
-      // already added by hand (e.g. the original PM Level 1 / IP Level 2
-      // seed data) is left untouched rather than being overwritten.
-      // Level 1 is identical across every path; Levels 2-5 are path-specific.
-      // This covers the required projects only — Pathways also offers a
-      // shared pool of elective projects members can choose per level,
-      // which isn't seeded here since the choice is member-specific.
+      // catalog plus the official Toastmasters magazine and multiple
+      // district checklists documenting the Nov 2021 "Level 1 Revision".
+      // Level 1 is identical across every path (3 required projects: Ice
+      // Breaker, Evaluation and Feedback, Researching and Presenting);
+      // Levels 2-5 are path-specific. This covers required projects only —
+      // Pathways also offers a shared pool of elective projects members can
+      // choose per level, which isn't seeded here since the choice is
+      // member-specific.
       const evalFormUrl2 = 'https://www.toastmasters.org/-/media/files/department-documents/pathways-program-documents/evaluation-forms';
       const COMMON_L1 = [
         [1, '破冰演讲'],
-        [2, '有目的的演讲写作'],
-        [3, '声音变化与肢体语言入门'],
-        [4, '评估与反馈'],
+        [2, '评估与反馈'],
+        [3, '研究与展示'],
       ];
       const PATHWAY_PROJECT_SEED = {
         PM: { 2: [[1, '认识你的沟通风格'], [2, '有效的肢体语言'], [3, '认识导师计划']], 3: [[1, '说服性演讲']], 4: [[1, '应对难缠的听众']], 5: [[1, '准备专业演讲'], [2, '回顾你的学习路径']] },
@@ -226,16 +224,33 @@ async function ensureSchema() {
       }
 
       let seededProjects = 0;
+      let correctedLevel1Projects = 0;
       for (const code of Object.keys(PATHWAY_PROJECT_SEED)) {
         const level1Id = levelIdByCode[code + '-1'];
         if (level1Id) {
+          // Force-correct Level 1 (UPSERT, not INSERT IGNORE) since some
+          // paths — notably Presentation Mastery — still had stale
+          // placeholder or outdated project titles sitting in these slots
+          // from before this curriculum was verified against official
+          // sources.
           for (const [projectNo, nameZh] of COMMON_L1) {
             const [r] = await conn.query(
-              'INSERT IGNORE INTO pathway_projects (level_id, project_no, project_name_zh, default_time_min, default_time_max, evaluation_form_url) VALUES (?,?,?,?,?,?)',
+              'INSERT INTO pathway_projects (level_id, project_no, project_name_zh, default_time_min, default_time_max, evaluation_form_url) VALUES (?,?,?,?,?,?) ' +
+              'ON DUPLICATE KEY UPDATE project_name_zh = VALUES(project_name_zh), default_time_min = VALUES(default_time_min), default_time_max = VALUES(default_time_max), evaluation_form_url = VALUES(evaluation_form_url)',
               [level1Id, projectNo, nameZh, 5, 7, evalFormUrl2]
             );
-            if (r.affectedRows > 0) seededProjects++;
+            if (r.affectedRows > 0) correctedLevel1Projects++;
           }
+          // Level 1 only has 3 required projects; remove any leftover
+          // project_no 4/5 rows from older seed data, but only if no
+          // member has actually completed that project (never delete real
+          // completion history).
+          const [r2] = await conn.query(
+            'DELETE pp FROM pathway_projects pp WHERE pp.level_id = ? AND pp.project_no > 3 ' +
+            'AND NOT EXISTS (SELECT 1 FROM member_project_completion mpc WHERE mpc.project_id = pp.id)',
+            [level1Id]
+          );
+          correctedLevel1Projects += r2.affectedRows;
         }
         const levels = PATHWAY_PROJECT_SEED[code];
         for (const levelNo of Object.keys(levels)) {
@@ -252,6 +267,9 @@ async function ensureSchema() {
       }
       if (seededProjects > 0) {
         console.log(`Migration: seeded ${seededProjects} pathway project(s) from the official Toastmasters curriculum`);
+      }
+      if (correctedLevel1Projects > 0) {
+        console.log(`Migration: corrected ${correctedLevel1Projects} Level 1 pathway project row(s) to match the official Toastmasters curriculum`);
       }
 
       // Correct the level titles: these were originally seeded with a
