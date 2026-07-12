@@ -64,7 +64,7 @@ router.get('/:id', async (req, res) => {
     );
 
     const completions = await all(
-      'SELECT mpc.*, pp.project_name_zh, pp.project_no, pl.level_no, p.name_zh AS pathway_name, p.code AS pathway_code, m.meeting_no, m.meeting_date ' +
+      'SELECT mpc.*, pp.project_name_zh, pp.project_no, pl.level_no, pl.level_label, p.name_zh AS pathway_name, p.code AS pathway_code, m.meeting_no, m.meeting_date ' +
       'FROM member_project_completion mpc ' +
       'JOIN pathway_projects pp ON mpc.project_id = pp.id ' +
       'JOIN pathway_levels pl ON pp.level_id = pl.id ' +
@@ -150,10 +150,14 @@ router.post('/:id/progress', async (req, res) => {
   try {
     const b = req.body;
     const isPrimary = b.is_primary_pathway === undefined ? 1 : b.is_primary_pathway;
+    // current_level === undefined means the field wasn't sent at all (default
+    // to level 1); current_level === null is an explicit "unassigned" choice
+    // (e.g. for a DTM-style entry with no level structure) and is preserved.
+    const levelValue = b.current_level === undefined ? 1 : (b.current_level === '' ? null : b.current_level);
     const result = await run(
       'INSERT INTO member_progress (member_id, pathway_id, current_level, is_primary_pathway, started_date) VALUES (?,?,?,?, CURDATE()) ' +
       'ON DUPLICATE KEY UPDATE current_level = VALUES(current_level), is_primary_pathway = VALUES(is_primary_pathway)',
-      [req.params.id, b.pathway_id, b.current_level || 1, isPrimary]
+      [req.params.id, b.pathway_id, levelValue, isPrimary]
     );
     res.json({ ok: true, id: result.lastInsertRowid });
   } catch (err) {

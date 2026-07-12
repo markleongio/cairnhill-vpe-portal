@@ -25,7 +25,7 @@ async function renderDashboard() {
       ? '<span class="badge badge-jade">' + escapeHtml(m.pathway_code) + ' \u00b7 ' + escapeHtml(m.pathway_name) + '</span>'
       : '<span class="muted small">\u672a\u767b\u8bb0</span>';
     return '<tr data-member="' + m.id + '">' +
-      '<td>' + progressRing(m.current_level, 5, 32) + '</td>' +
+      '<td>' + progressRing(m.current_level, 5, 32, m.current_level ? undefined : '—') + '</td>' +
       '<td>' + escapeHtml(m.full_name) + '</td>' +
       '<td>' + pathwayCell + '</td>' +
       '<td>' + (m.current_level ? '\u7ea7\u522b ' + m.current_level : '\u2014') + '</td>' +

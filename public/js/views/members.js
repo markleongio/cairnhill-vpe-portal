@@ -26,7 +26,7 @@ async function loadMembersTable() {
       ? '<span class="badge badge-jade">' + escapeHtml(ov.pathway_code) + ' · ' + escapeHtml(ov.pathway_name) + '</span>'
       : '<span class="muted small">未登记</span>';
     return '<tr data-id="' + m.id + '">' +
-      '<td><div class="member-cell">' + progressRing(ov.current_level, 5, 34) +
+      '<td><div class="member-cell">' + progressRing(ov.current_level, 5, 34, ov.current_level ? undefined : '—') +
         '<div><div style="font-weight:500">' + escapeHtml(m.full_name) + '</div>' +
         '<div class="small muted">' + escapeHtml(m.member_no || '') + '</div></div></div></td>' +
       '<td>' + pathwayCell + '</td>' +

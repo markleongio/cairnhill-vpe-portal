@@ -49,7 +49,7 @@ async function renderPrintAgenda(meetingId) {
     const summarySub = [
       row.summary_zh || '',
       row.speech_title ? '题目：' + row.speech_title : '',
-      row.pathway_name ? '路线：' + row.pathway_name + (row.level_no ? '　级别：' + row.level_no : '') : '',
+      row.pathway_name ? '路线：' + row.pathway_name + (row.level_no ? '　' + (row.level_label || ('级别：' + row.level_no)) : '') : '',
       row.project_name_zh ? '单元：' + row.project_name_zh : '',
       row.evaluates_speaker_name || row.evaluates_guest_name ? '评论：' + (row.evaluates_speaker_name || row.evaluates_guest_name) : '',
     ].filter(Boolean).join('　');

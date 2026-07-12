@@ -59,7 +59,7 @@ router.get('/:id', async (req, res) => {
       'sm.full_name AS speaker_name, sm.chinese_name AS speaker_chinese_name, ' +
       'rm.full_name AS responsible_name, rm.chinese_name AS responsible_chinese_name, ' +
       'p.name_zh AS pathway_name, p.code AS pathway_code, ' +
-      'pp.project_name_zh, pl.level_no, ' +
+      'pp.project_name_zh, pl.level_no, pl.level_label, ' +
       'sp.code AS speaker_primary_pathway_code, smp.current_level AS speaker_primary_level, ' +
       'rp.code AS responsible_primary_pathway_code, rmp.current_level AS responsible_primary_level, ' +
       'eval_row.summary_zh AS evaluates_summary, eval_sm.full_name AS evaluates_speaker_name, eval_row.speaker_guest_name AS evaluates_guest_name ' +

@@ -51,7 +51,7 @@ function fmtDate(iso) {
   return d.toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
-function progressRing(level, max, size) {
+function progressRing(level, max, size, labelOverride) {
   max = max || 5;
   size = size || 40;
   const radius = (size - 4) / 2;
@@ -62,7 +62,7 @@ function progressRing(level, max, size) {
     '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">' +
     '<circle class="ring-bg" cx="' + (size/2) + '" cy="' + (size/2) + '" r="' + radius + '"></circle>' +
     '<circle class="ring-fill" cx="' + (size/2) + '" cy="' + (size/2) + '" r="' + radius + '" stroke-dasharray="' + dash + ' ' + circumference + '"></circle>' +
-    '</svg><div class="ring-label">' + (level || 0) + '</div></div>';
+    '</svg><div class="ring-label">' + (labelOverride !== undefined ? labelOverride : (level || 0)) + '</div></div>';
 }
 
 function toast(msg, kind) {

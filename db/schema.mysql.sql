@@ -182,7 +182,7 @@ CREATE TABLE IF NOT EXISTS member_progress (
   id              INT AUTO_INCREMENT PRIMARY KEY,
   member_id       INT NOT NULL,
   pathway_id      INT NOT NULL,
-  current_level   INT NOT NULL DEFAULT 1,
+  current_level   INT,
   is_primary_pathway TINYINT NOT NULL DEFAULT 1,
   started_date    DATE,
   updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

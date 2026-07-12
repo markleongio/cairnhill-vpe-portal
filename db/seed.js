@@ -51,7 +51,7 @@ async function main() {
     }
   }
 
-  const levelLabelsZh = ['级别：一', '级别：二', '级别：三', '级别：四', '级别：五'];
+  const levelLabelsZh = ['级别一：掌握基础', '级别二：认识风格', '级别三：增进知识', '级别四：建立技能', '级别五：展现专业'];
   for (const code of Object.keys(pathwayIds)) {
     await ensureLevels(pathwayIds[code], levelLabelsZh);
   }

@@ -5,17 +5,19 @@ async function renderMemberDetail(id) {
   const m = await API.get('/members/' + id);
 
   const progressCards = (m.progress || []).map(function (p) {
-    return '<div class="card card-pad flex items-center gap-12" style="min-width:220px;">' +
-      progressRing(p.current_level, 5, 48) +
+    const hasLevel = p.current_level !== null && p.current_level !== undefined;
+    return '<div class="card card-pad flex items-center gap-12" style="min-width:220px;position:relative;">' +
+      progressRing(p.current_level, 5, 48, hasLevel ? undefined : '—') +
       '<div><div style="font-weight:500">' + escapeHtml(p.code) + ' · ' + escapeHtml(p.name_zh) + '</div>' +
-      '<div class="small muted">' + escapeHtml(t('current_level')) + ' ' + p.current_level + ' / 5' + (p.is_primary_pathway ? ' · ' + escapeHtml(t('primary_pathway')) : '') + '</div></div>' +
+      '<div class="small muted">' + (hasLevel ? escapeHtml(t('current_level')) + ' ' + p.current_level + ' / 5' : escapeHtml(t('unassigned_level'))) + (p.is_primary_pathway ? ' · ' + escapeHtml(t('primary_pathway')) : '') + '</div></div>' +
+      '<button class="btn btn-sm edit-progress-btn" style="position:absolute;top:8px;right:8px;" data-pathway="' + p.pathway_id + '" data-level="' + (hasLevel ? p.current_level : '') + '" data-primary="' + (p.is_primary_pathway ? '1' : '0') + '"><i class="ti ti-edit"></i></button>' +
     '</div>';
   }).join('');
 
   const completionRows = (m.completions || []).map(function (c) {
     return '<tr>' +
       '<td>' + fmtDate(c.completed_date) + '</td>' +
-      '<td><span class="badge badge-jade">' + escapeHtml(c.pathway_code) + '</span> ' + escapeHtml(t('pathway_level')) + c.level_no + ' · ' + escapeHtml(c.project_name_zh) + '</td>' +
+      '<td><span class="badge badge-jade">' + escapeHtml(c.pathway_code) + '</span> ' + escapeHtml(c.level_label || (t('pathway_level') + c.level_no)) + ' · ' + escapeHtml(c.project_name_zh) + '</td>' +
       '<td>' + escapeHtml(c.speech_title || '—') + '</td>' +
       '<td>' + (c.meeting_no ? escapeHtml(c.meeting_no) : '—') + '</td>' +
     '</tr>';
@@ -79,6 +81,16 @@ async function renderMemberDetail(id) {
     openEnrollModal(id, pathwayOptions);
   });
 
+  document.querySelectorAll('.edit-progress-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      openEnrollModal(id, pathwayOptions, {
+        pathwayId: btn.dataset.pathway,
+        currentLevel: btn.dataset.level,
+        isPrimary: btn.dataset.primary === '1',
+      });
+    });
+  });
+
   document.getElementById('edit-member-btn').addEventListener('click', function () {
     openEditMemberModal(m);
   });
@@ -138,22 +150,53 @@ function openEditMemberModal(member) {
   });
 }
 
-function openEnrollModal(memberId, pathwayOptions) {
+async function openEnrollModal(memberId, pathwayOptionsHtml, existing) {
+  const isEdit = !!existing;
+  const pathwaySelectHtml = isEdit
+    ? Store.pathways.map(function (p) {
+        const sel = String(p.id) === String(existing.pathwayId) ? ' selected' : '';
+        return '<option value="' + p.id + '"' + sel + '>' + escapeHtml(p.code) + ' · ' + escapeHtml(p.name_zh) + '</option>';
+      }).join('')
+    : pathwayOptionsHtml;
+
+  function buildLevelOptions(levels) {
+    let opts = '<option value="">' + escapeHtml(t('unassigned_level')) + '</option>';
+    opts += levels.map(function (l) {
+      const sel = isEdit && String(existing.currentLevel) === String(l.level_no) ? ' selected' : '';
+      return '<option value="' + l.level_no + '"' + sel + '>' + escapeHtml(l.level_label || (t('pathway_level') + ' ' + l.level_no)) + '</option>';
+    }).join('');
+    return opts;
+  }
+
+  const initialPathwayId = isEdit ? existing.pathwayId : (Store.pathways[0] && Store.pathways[0].id);
+  let initialLevels = [];
+  try {
+    initialLevels = initialPathwayId ? await API.get('/pathways/' + initialPathwayId + '/levels') : [];
+  } catch (err) { initialLevels = []; }
+
   const wrap = document.createElement('div');
   wrap.className = 'modal-backdrop';
   wrap.innerHTML =
     '<div class="modal">' +
-      '<div class="modal-head"><h3>' + escapeHtml(t('register_new_pathway')) + '</h3><button class="modal-close" id="modal-close">&times;</button></div>' +
+      '<div class="modal-head"><h3>' + escapeHtml(isEdit ? t('edit') : t('register_new_pathway')) + '</h3><button class="modal-close" id="modal-close">&times;</button></div>' +
       '<div class="modal-body">' +
-        '<div class="field"><label>' + escapeHtml(t('pathway')) + '</label><select id="f-pathway">' + pathwayOptions + '</select></div>' +
-        '<div class="field"><label>' + escapeHtml(t('current_level')) + '</label><select id="f-level">' +
-          [1,2,3,4,5].map(function (n) { return '<option value="' + n + '">' + escapeHtml(t('pathway_level')) + ' ' + n + '</option>'; }).join('') +
-        '</select></div>' +
-        '<div class="field"><label><input type="checkbox" id="f-primary" checked style="width:auto;display:inline-block;margin-right:6px;"> ' + escapeHtml(t('set_as_primary')) + '</label></div>' +
+        '<div class="field"><label>' + escapeHtml(t('pathway')) + '</label><select id="f-pathway"' + (isEdit ? ' disabled' : '') + '>' + pathwaySelectHtml + '</select></div>' +
+        '<div class="field"><label>' + escapeHtml(t('current_level')) + '</label><select id="f-level">' + buildLevelOptions(initialLevels) + '</select></div>' +
+        '<div class="field"><label><input type="checkbox" id="f-primary" ' + (isEdit ? (existing.isPrimary ? 'checked' : '') : 'checked') + ' style="width:auto;display:inline-block;margin-right:6px;"> ' + escapeHtml(t('set_as_primary')) + '</label></div>' +
       '</div>' +
       '<div class="modal-foot"><button class="btn" id="cancel-btn">' + escapeHtml(t('cancel')) + '</button><button class="btn btn-primary" id="save-btn"><i class="ti ti-check"></i> ' + escapeHtml(t('save')) + '</button></div>' +
     '</div>';
   document.body.appendChild(wrap);
+
+  if (!isEdit) {
+    document.getElementById('f-pathway').addEventListener('change', async function () {
+      const levelSelect = document.getElementById('f-level');
+      try {
+        const levels = await API.get('/pathways/' + this.value + '/levels');
+        levelSelect.innerHTML = buildLevelOptions(levels);
+      } catch (err) { /* leave options as-is if this fails */ }
+    });
+  }
 
   function close() { wrap.remove(); }
   wrap.addEventListener('click', function (e) { if (e.target === wrap) close(); });
@@ -161,12 +204,14 @@ function openEnrollModal(memberId, pathwayOptions) {
   document.getElementById('cancel-btn').addEventListener('click', close);
   document.getElementById('save-btn').addEventListener('click', async function () {
     try {
+      const levelRaw = document.getElementById('f-level').value;
+      const pathwayId = isEdit ? Number(existing.pathwayId) : Number(document.getElementById('f-pathway').value);
       await API.post('/members/' + memberId + '/progress', {
-        pathway_id: Number(document.getElementById('f-pathway').value),
-        current_level: Number(document.getElementById('f-level').value),
+        pathway_id: pathwayId,
+        current_level: levelRaw === '' ? null : Number(levelRaw),
         is_primary_pathway: document.getElementById('f-primary').checked ? 1 : 0,
       });
-      toast(I18N.lang === 'zh' ? '已登记路径' : 'Pathway registered', 'success');
+      toast(I18N.lang === 'zh' ? '已保存' : 'Saved', 'success');
       close();
       renderMemberDetail(memberId);
     } catch (err) {

@@ -116,6 +116,7 @@ const I18N = {
     email: { zh: '电邮', en: 'Email' },
     primary_pathway: { zh: '主修路径', en: 'Primary Pathway' },
     current_level: { zh: '当前级别', en: 'Current Level' },
+    unassigned_level: { zh: '未设级别', en: 'Unassigned' },
     total_completed: { zh: '累计完成', en: 'Total Completed' },
     not_registered: { zh: '未登记', en: 'Not registered' },
     active_status: { zh: '活跃', en: 'Active' },

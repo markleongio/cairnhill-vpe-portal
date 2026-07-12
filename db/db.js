@@ -169,6 +169,18 @@ async function ensureSchema() {
         console.log('Migration: widened exco_terms unique key to (term_label, role_id, member_id)');
       }
 
+      // Allow current_level to be NULL: some progress entries don't have a
+      // 5-level structure (e.g. a custom "DTM" entry recording an award/
+      // designation rather than an in-progress path), so forcing a level
+      // number on them doesn't make sense.
+      const [levelColInfo] = await conn.query(
+        "SELECT IS_NULLABLE FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'member_progress' AND column_name = 'current_level'"
+      );
+      if (levelColInfo[0] && levelColInfo[0].IS_NULLABLE === 'NO') {
+        await conn.query('ALTER TABLE member_progress MODIFY COLUMN current_level INT NULL');
+        console.log('Migration: member_progress.current_level is now nullable');
+      }
+
       console.log('Database schema and indexes verified/applied.');
 
       // Content seed: populate the pathway project library with the
@@ -240,6 +252,29 @@ async function ensureSchema() {
       }
       if (seededProjects > 0) {
         console.log(`Migration: seeded ${seededProjects} pathway project(s) from the official Toastmasters curriculum`);
+      }
+
+      // Correct the level titles: these were originally seeded with a
+      // generic placeholder ("级别：一" etc). The official Toastmasters
+      // Pathways level titles are the same across all 11 paths, so this
+      // just fixes the label text for every level_no, unconditionally.
+      const OFFICIAL_LEVEL_LABELS = {
+        1: '级别一：掌握基础',
+        2: '级别二：认识风格',
+        3: '级别三：增进知识',
+        4: '级别四：建立技能',
+        5: '级别五：展现专业',
+      };
+      let relabeledLevels = 0;
+      for (const levelNo of Object.keys(OFFICIAL_LEVEL_LABELS)) {
+        const [r] = await conn.query(
+          'UPDATE pathway_levels SET level_label = ? WHERE level_no = ? AND (level_label IS NULL OR level_label != ?)',
+          [OFFICIAL_LEVEL_LABELS[levelNo], levelNo, OFFICIAL_LEVEL_LABELS[levelNo]]
+        );
+        relabeledLevels += r.affectedRows;
+      }
+      if (relabeledLevels > 0) {
+        console.log(`Migration: corrected ${relabeledLevels} pathway level label(s) to the official Toastmasters titles`);
       }
     } finally {
       await conn.end();
