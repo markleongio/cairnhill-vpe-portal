@@ -194,6 +194,12 @@ async function ensureSchema() {
       // Pathways also offers a shared pool of elective projects members can
       // choose per level, which isn't seeded here since the choice is
       // member-specific.
+      //
+      // Wrapped in its own try/catch: this is content seeding, not core
+      // schema setup, so a bug here should never be able to block login or
+      // any other core DB access (as happened once — a DELETE below missed
+      // a foreign key from meeting_agenda and broke every request).
+      try {
       const evalFormUrl2 = 'https://www.toastmasters.org/-/media/files/department-documents/pathways-program-documents/evaluation-forms';
       const COMMON_L1 = [
         [1, '破冰演讲'],
@@ -242,12 +248,14 @@ async function ensureSchema() {
             if (r.affectedRows > 0) correctedLevel1Projects++;
           }
           // Level 1 only has 3 required projects; remove any leftover
-          // project_no 4/5 rows from older seed data, but only if no
-          // member has actually completed that project (never delete real
-          // completion history).
+          // project_no 4/5 rows from older seed data, but only if nothing
+          // actually references that project row — a member's completion
+          // history, or a meeting agenda item that selected it for a
+          // speech — must never be deleted.
           const [r2] = await conn.query(
             'DELETE pp FROM pathway_projects pp WHERE pp.level_id = ? AND pp.project_no > 3 ' +
-            'AND NOT EXISTS (SELECT 1 FROM member_project_completion mpc WHERE mpc.project_id = pp.id)',
+            'AND NOT EXISTS (SELECT 1 FROM member_project_completion mpc WHERE mpc.project_id = pp.id) ' +
+            'AND NOT EXISTS (SELECT 1 FROM meeting_agenda ma WHERE ma.pathway_project_id = pp.id)',
             [level1Id]
           );
           correctedLevel1Projects += r2.affectedRows;
@@ -293,6 +301,11 @@ async function ensureSchema() {
       }
       if (relabeledLevels > 0) {
         console.log(`Migration: corrected ${relabeledLevels} pathway level label(s) to the official Toastmasters titles`);
+      }
+      } catch (contentSeedErr) {
+        // Never let a content-seeding issue block schema setup or login —
+        // log it clearly and move on. The server keeps running either way.
+        console.error('Content seed step failed (non-fatal, core schema is unaffected):', contentSeedErr.message);
       }
     } finally {
       await conn.end();
