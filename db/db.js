@@ -181,6 +181,17 @@ async function ensureSchema() {
         console.log('Migration: member_progress.current_level is now nullable');
       }
 
+      // Allow the resource-library seed below to be idempotent (re-runnable
+      // without creating duplicates) by ensuring a unique key on url exists
+      // on databases created before this key was added to the schema.
+      const [resUrlKey] = await conn.query(
+        "SELECT COUNT(*) AS cnt FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'resource_library' AND index_name = 'uniq_resource_url'"
+      );
+      if (resUrlKey[0].cnt === 0) {
+        await conn.query('ALTER TABLE resource_library ADD UNIQUE KEY uniq_resource_url (url(255))');
+        console.log('Migration: added unique key on resource_library.url');
+      }
+
       console.log('Database schema and indexes verified/applied.');
 
       // Content seed: populate the pathway project library with the
@@ -201,23 +212,26 @@ async function ensureSchema() {
       // a foreign key from meeting_agenda and broke every request).
       try {
       const evalFormUrl2 = 'https://www.toastmasters.org/-/media/files/department-documents/pathways-program-documents/evaluation-forms';
+      // Chinese titles below are sourced from the club's official Chinese
+      // evaluation-forms library (Toastmasters International), replacing
+      // earlier best-guess translations.
       const COMMON_L1 = [
-        [1, '破冰演讲'],
+        [1, '初试啼声演讲'],
         [2, '评估与反馈'],
-        [3, '研究与展示'],
+        [3, '研究和展示'],
       ];
       const PATHWAY_PROJECT_SEED = {
-        PM: { 2: [[1, '认识你的沟通风格'], [2, '有效的肢体语言'], [3, '认识导师计划']], 3: [[1, '说服性演讲']], 4: [[1, '应对难缠的听众']], 5: [[1, '准备专业演讲'], [2, '回顾你的学习路径']] },
-        EH: { 2: [[1, '与听众建立连结'], [2, '认识你的幽默感'], [3, '认识导师计划']], 3: [[1, '用幽默吸引听众']], 4: [[1, '即席演讲中的幽默力量']], 5: [[1, '用幽默传递你的信息'], [2, '回顾你的学习路径']] },
-        PI: { 2: [[1, '积极聆听'], [2, '认识你的领导风格'], [3, '认识导师计划']], 3: [[1, '认识冲突化解']], 4: [[1, '在困境中领导']], 5: [[1, '高效领导力'], [2, '回顾你的学习路径']] },
-        DL: { 2: [[1, '认识你的领导风格'], [2, '认识你的沟通风格'], [3, '认识导师计划']], 3: [[1, '协商达成最佳结果']], 4: [[1, '管理变革']], 5: [[1, '在任何情境下领导'], [2, '回顾你的学习路径']] },
-        VC: { 2: [[1, '认识你的领导风格'], [2, '认识你的沟通风格'], [3, '认识导师计划']], 3: [[1, '制定沟通计划']], 4: [[1, '沟通变革']], 5: [[1, '制定你的愿景'], [2, '回顾你的学习路径']] },
-        MS: { 2: [[1, '积极聆听'], [2, '认识你的沟通风格'], [3, '认识导师计划']], 3: [[1, '认识情商']], 4: [[1, '激励他人']], 5: [[1, '团队建设'], [2, '回顾你的学习路径']] },
-        IP: { 2: [[1, '认识你的领导风格'], [2, '与听众建立连结'], [3, '认识导师计划']], 3: [[1, '提案演讲']], 4: [[1, '成功管理项目']], 5: [[1, '高效领导力'], [2, '回顾你的学习路径']] },
-        SR: { 2: [[1, '认识你的领导风格'], [2, '积极聆听'], [3, '认识导师计划']], 3: [[1, '透过人脉建立连结']], 4: [[1, '公共关系策略']], 5: [[1, '在志愿组织中领导'], [2, '回顾你的学习路径']] },
-        EC: { 2: [[1, '认识你的领导风格'], [2, '认识你的沟通风格'], [3, '认识导师计划']], 3: [[1, '达成共识']], 4: [[1, '透过教练促进积极改善']], 5: [[1, '高效领导力'], [2, '回顾你的学习路径']] },
-        LD: { 2: [[1, '时间管理'], [2, '认识你的领导风格'], [3, '认识导师计划']], 3: [[1, '规划与执行']], 4: [[1, '领导你的团队']], 5: [[1, '成功筹办活动'], [2, '回顾你的学习路径']] },
-        TC: { 2: [[1, '认识你的领导风格'], [2, '积极聆听'], [3, '认识导师计划']], 3: [[1, '成功协作']], 4: [[1, '激励他人']], 5: [[1, '在任何情境下领导'], [2, '回顾你的学习路径']] },
+        PM: { 2: [[1, '了解你的沟通风格'], [2, '有效的身体语言'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '说服型演讲']], 4: [[1, '应对棘手的听众']], 5: [[1, '为职业演讲做好准备'], [2, '反思你的学习路径']] },
+        EH: { 2: [[1, '与听众交流'], [2, '了解幽默感'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '通过幽默感吸引听众']], 4: [[1, '即兴演讲中增添幽默的威力']], 5: [[1, '发表包含幽默内容的演讲'], [2, '反思你的学习路径']] },
+        PI: { 2: [[1, '主动倾听'], [2, '了解你的领导风格'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '掌握解决冲突的方法']], 4: [[1, '在困境中领导']], 5: [[1, '高效领导力'], [2, '反思你的学习路径']] },
+        DL: { 2: [[1, '了解你的领导风格'], [2, '了解你的沟通风格'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '商议最佳结果']], 4: [[1, '管理变化']], 5: [[1, '应对不同情形的领导力'], [2, '反思你的学习路径']] },
+        VC: { 2: [[1, '了解你的领导风格'], [2, '了解你的沟通风格'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '制定沟通方案']], 4: [[1, '传达变化']], 5: [[1, '完善愿景'], [2, '反思你的学习路径']] },
+        MS: { 2: [[1, '主动倾听'], [2, '了解你的沟通风格'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '了解情商']], 4: [[1, '激励他人']], 5: [[1, '团队建设'], [2, '反思你的学习路径']] },
+        IP: { 2: [[1, '了解你的领导风格'], [2, '与听众交流'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '提出建议']], 4: [[1, '成功管理项目']], 5: [[1, '高效领导力'], [2, '反思你的学习路径']] },
+        SR: { 2: [[1, '了解你的领导风格'], [2, '主动倾听'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '通过社交建立关系']], 4: [[1, '公共关系策略']], 5: [[1, '带领志愿者组织'], [2, '反思你的学习路径']] },
+        EC: { 2: [[1, '了解你的领导风格'], [2, '了解你的沟通风格'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '达成共识']], 4: [[1, '积极教练下的成长']], 5: [[1, '高效领导力'], [2, '反思你的学习路径']] },
+        LD: { 2: [[1, '时间管理'], [2, '了解你的领导风格'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '计划与实施']], 4: [[1, '领导你的团队']], 5: [[1, '举办成功的活动'], [2, '反思你的学习路径']] },
+        TC: { 2: [[1, '了解你的领导风格'], [2, '主动倾听'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '成功合作']], 4: [[1, '激励他人']], 5: [[1, '应对不同情形的领导力'], [2, '反思你的学习路径']] },
       };
 
       const [seedPathways] = await conn.query('SELECT id, code FROM pathways');
@@ -264,21 +278,56 @@ async function ensureSchema() {
         for (const levelNo of Object.keys(levels)) {
           const levelId = levelIdByCode[code + '-' + levelNo];
           if (!levelId) continue;
+          // Force-correct Levels 2-5 too (UPSERT): the Chinese titles
+          // previously seeded here were reasonable best-guess translations,
+          // now replaced with the club's verified official wording.
           for (const [projectNo, nameZh] of levels[levelNo]) {
             const [r] = await conn.query(
-              'INSERT IGNORE INTO pathway_projects (level_id, project_no, project_name_zh, default_time_min, default_time_max, evaluation_form_url) VALUES (?,?,?,?,?,?)',
+              'INSERT INTO pathway_projects (level_id, project_no, project_name_zh, default_time_min, default_time_max, evaluation_form_url) VALUES (?,?,?,?,?,?) ' +
+              'ON DUPLICATE KEY UPDATE project_name_zh = VALUES(project_name_zh), default_time_min = VALUES(default_time_min), default_time_max = VALUES(default_time_max), evaluation_form_url = VALUES(evaluation_form_url)',
               [levelId, projectNo, nameZh, 5, 7, evalFormUrl2]
             );
             if (r.affectedRows > 0) seededProjects++;
           }
         }
+
+        // Elective pools: Pathways lets a member pick from a shared menu of
+        // elective projects at Levels 3-5 (Level 3 is entirely elective —
+        // choose 2 — while Levels 4-5 add one elective choice alongside the
+        // required project already seeded above). Verified directly against
+        // the club's official path-checklist document across 4 sample paths
+        // and cross-checked against the evaluation-forms library. Added
+        // additively (INSERT IGNORE) starting at project_no 10 so they never
+        // collide with each path's required project_no 1 slot, and skipped
+        // if the title duplicates that path's own required project.
+        const ELECTIVE_POOLS = {
+          3: ['发表社交演讲', '使用演示软件', '故事产生共鸣', '创建高效的视觉辅助工具', '与听众交流', '通过社交建立关系', '关注积极的一面', '为面谈做好准备', '了解抑扬顿挫', '有效的身体语言', '了解幽默感', '研究和展示'],
+          4: ['创建博客', '建立社交媒体影响力', '创建引人入胜的博客', '在线会议管理', '公共关系策略', '问答环节'],
+          5: ['有所认知', '主持专题讨论', '高尚领导力', '带领志愿者组织', '为职业演讲做好准备', '高级导师计划', '360° 评估'],
+        };
+        for (const levelNo of Object.keys(ELECTIVE_POOLS)) {
+          const levelId = levelIdByCode[code + '-' + levelNo];
+          if (!levelId) continue;
+          const requiredTitles = (levels[levelNo] || []).map(function (pair) { return pair[1]; });
+          let seq = 10;
+          for (const electiveName of ELECTIVE_POOLS[levelNo]) {
+            if (requiredTitles.indexOf(electiveName) !== -1) continue; // don't duplicate this path's own required project
+            const [r] = await conn.query(
+              'INSERT IGNORE INTO pathway_projects (level_id, project_no, project_name_zh, default_time_min, default_time_max, evaluation_form_url) VALUES (?,?,?,?,?,?)',
+              [levelId, seq, electiveName, 5, 7, evalFormUrl2]
+            );
+            if (r.affectedRows > 0) seededProjects++;
+            seq++;
+          }
+        }
       }
       if (seededProjects > 0) {
-        console.log(`Migration: seeded ${seededProjects} pathway project(s) from the official Toastmasters curriculum`);
+        console.log(`Migration: seeded/corrected ${seededProjects} Level 2-5 pathway project row(s) with the official Toastmasters curriculum`);
       }
       if (correctedLevel1Projects > 0) {
         console.log(`Migration: corrected ${correctedLevel1Projects} Level 1 pathway project row(s) to match the official Toastmasters curriculum`);
       }
+
 
       // Correct the level titles: these were originally seeded with a
       // generic placeholder ("级别：一" etc). The official Toastmasters
@@ -301,6 +350,95 @@ async function ensureSchema() {
       }
       if (relabeledLevels > 0) {
         console.log(`Migration: corrected ${relabeledLevels} pathway level label(s) to the official Toastmasters titles`);
+      }
+
+      // Seed the Resource Library with the official Chinese evaluation
+      // forms, organized by Pathways level. Files live as static assets
+      // under public/resources/ and are served directly by Express.
+      const RESOURCE_SEED = [
+        ['Level 1 · 初试啼声演讲', 'evaluation', '/resources/L1-01.pdf'],
+        ['Level 1 · 抑扬顿挫和肢体语言简介', 'evaluation', '/resources/L1-02.pdf'],
+        ['Level 1 · 有目的地写演讲稿', 'evaluation', '/resources/L1-03.pdf'],
+        ['Level 1 · 研究和展示', 'evaluation', '/resources/L1-04.pdf'],
+        ['Level 1 · 评估与反馈 — 第一次演讲', 'evaluation', '/resources/L1-05.pdf'],
+        ['Level 1 · 评估与反馈 — 第二次演讲', 'evaluation', '/resources/L1-06.pdf'],
+        ['Level 1 · 评估与反馈 — 评估员演讲', 'evaluation', '/resources/L1-07.pdf'],
+        ['Level 1 · 评估表格', 'evaluation', '/resources/L1-08.pdf'],
+        ['Level 2 · 与听众交流', 'evaluation', '/resources/L2-01.pdf'],
+        ['Level 2 · 主动倾听', 'evaluation', '/resources/L2-02.pdf'],
+        ['Level 2 · 了解你的沟通风格', 'evaluation', '/resources/L2-03.pdf'],
+        ['Level 2 · 了解你的领导风格', 'evaluation', '/resources/L2-04.pdf'],
+        ['Level 2 · 了解幽默感', 'evaluation', '/resources/L2-05.pdf'],
+        ['Level 2 · 介绍 Toastmasters 导师计划', 'evaluation', '/resources/L2-06.pdf'],
+        ['Level 2 · 时间管理', 'evaluation', '/resources/L2-07.pdf'],
+        ['Level 2 · 有效的身体语言', 'evaluation', '/resources/L2-08.pdf'],
+        ['Level 2 · 跨文化理解', 'evaluation', '/resources/L2-09.pdf'],
+        ['Level 3 · 与听众交流', 'evaluation', '/resources/L3-01.pdf'],
+        ['Level 3 · 为面谈做好准备', 'evaluation', '/resources/L3-02.pdf'],
+        ['Level 3 · 主动倾听', 'evaluation', '/resources/L3-03.pdf'],
+        ['Level 3 · 了解幽默感', 'evaluation', '/resources/L3-04.pdf'],
+        ['Level 3 · 了解情商', 'evaluation', '/resources/L3-05.pdf'],
+        ['Level 3 · 了解抑扬顿挫', 'evaluation', '/resources/L3-06.pdf'],
+        ['Level 3 · 使用描述性语言', 'evaluation', '/resources/L3-07.pdf'],
+        ['Level 3 · 使用演示软件', 'evaluation', '/resources/L3-08.pdf'],
+        ['Level 3 · 关注积极的一面', 'evaluation', '/resources/L3-09.pdf'],
+        ['Level 3 · 创建高效的视觉辅助工具', 'evaluation', '/resources/L3-10.pdf'],
+        ['Level 3 · 制定沟通方案', 'evaluation', '/resources/L3-11.pdf'],
+        ['Level 3 · 发表社交演讲', 'evaluation', '/resources/L3-12.pdf'],
+        ['Level 3 · 商议最佳结果', 'evaluation', '/resources/L3-13.pdf'],
+        ['Level 3 · 成功合作', 'evaluation', '/resources/L3-14.pdf'],
+        ['Level 3 · 掌握解决冲突的方法', 'evaluation', '/resources/L3-15.pdf'],
+        ['Level 3 · 提出建议', 'evaluation', '/resources/L3-16.pdf'],
+        ['Level 3 · 故事产生共鸣', 'evaluation', '/resources/L3-17.pdf'],
+        ['Level 3 · 有效的身体语言', 'evaluation', '/resources/L3-18.pdf'],
+        ['Level 3 · 激励你的听众', 'evaluation', '/resources/L3-19.pdf'],
+        ['Level 3 · 研究和展示', 'evaluation', '/resources/L3-20.pdf'],
+        ['Level 3 · 计划与实施', 'evaluation', '/resources/L3-21.pdf'],
+        ['Level 3 · 说服型演讲', 'evaluation', '/resources/L3-22.pdf'],
+        ['Level 3 · 达成共识 — 任务选项 1', 'evaluation', '/resources/L3-23.pdf'],
+        ['Level 3 · 通过幽默感吸引听众', 'evaluation', '/resources/L3-24.pdf'],
+        ['Level 3 · 通过社交建立关系', 'evaluation', '/resources/L3-25.pdf'],
+        ['Level 4 · 传达变化', 'evaluation', '/resources/L4-01.pdf'],
+        ['Level 4 · 公共关系策略', 'evaluation', '/resources/L4-02.pdf'],
+        ['Level 4 · 创建博客', 'evaluation', '/resources/L4-03.pdf'],
+        ['Level 4 · 创建引人入胜的博客', 'evaluation', '/resources/L4-04.pdf'],
+        ['Level 4 · 即兴演讲中增添幽默的威力', 'evaluation', '/resources/L4-05.pdf'],
+        ['Level 4 · 在困境中领导', 'evaluation', '/resources/L4-06.pdf'],
+        ['Level 4 · 在线会议管理', 'evaluation', '/resources/L4-07.pdf'],
+        ['Level 4 · 应对棘手的听众', 'evaluation', '/resources/L4-08.pdf'],
+        ['Level 4 · 建立社交媒体影响力', 'evaluation', '/resources/L4-09.pdf'],
+        ['Level 4 · 成功管理项目 — 第一次演讲', 'evaluation', '/resources/L4-10.pdf'],
+        ['Level 4 · 指导', 'evaluation', '/resources/L4-11.pdf'],
+        ['Level 4 · 激励他人', 'evaluation', '/resources/L4-12.pdf'],
+        ['Level 4 · 积极教练下的成长', 'evaluation', '/resources/L4-13.pdf'],
+        ['Level 4 · 管理变化', 'evaluation', '/resources/L4-14.pdf'],
+        ['Level 4 · 问答环节', 'evaluation', '/resources/L4-15.pdf'],
+        ['Level 4 · 领导你的团队', 'evaluation', '/resources/L4-16.pdf'],
+        ['Level 5 · 360° 评估', 'evaluation', '/resources/L5-01.pdf'],
+        ['Level 5 · 为职业演讲做好准备', 'evaluation', '/resources/L5-02.pdf'],
+        ['Level 5 · 主持专题讨论', 'evaluation', '/resources/L5-03.pdf'],
+        ['Level 5 · 举办成功的活动', 'evaluation', '/resources/L5-04.pdf'],
+        ['Level 5 · 反思你的学习路径', 'evaluation', '/resources/L5-05.pdf'],
+        ['Level 5 · 发表包含幽默内容的演讲', 'evaluation', '/resources/L5-06.pdf'],
+        ['Level 5 · 团队建设 — 第一次演讲', 'evaluation', '/resources/L5-07.pdf'],
+        ['Level 5 · 完善愿景 — 第一次演讲', 'evaluation', '/resources/L5-08.pdf'],
+        ['Level 5 · 带领志愿者组织', 'evaluation', '/resources/L5-09.pdf'],
+        ['Level 5 · 应对不同情形的领导力', 'evaluation', '/resources/L5-10.pdf'],
+        ['Level 5 · 有所认知', 'evaluation', '/resources/L5-11.pdf'],
+        ['Level 5 · 高尚领导力', 'evaluation', '/resources/L5-12.pdf'],
+        ['Level 5 · 高效领导力 — 第一次演讲', 'evaluation', '/resources/L5-13.pdf'],
+        ['Level 5 · 高级导师计划', 'evaluation', '/resources/L5-14.pdf'],
+      ];
+      let seededResources = 0;
+      for (const [labelZh, category, url] of RESOURCE_SEED) {
+        const [r] = await conn.query(
+          'INSERT IGNORE INTO resource_library (label_zh, category, url) VALUES (?,?,?)',
+          [labelZh, category, url]
+        );
+        if (r.affectedRows > 0) seededResources++;
+      }
+      if (seededResources > 0) {
+        console.log(`Migration: seeded ${seededResources} resource(s) into the Resource Library`);
       }
       } catch (contentSeedErr) {
         // Never let a content-seeding issue block schema setup or login —
