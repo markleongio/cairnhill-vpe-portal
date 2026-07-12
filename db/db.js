@@ -212,26 +212,28 @@ async function ensureSchema() {
       // a foreign key from meeting_agenda and broke every request).
       try {
       const evalFormUrl2 = 'https://www.toastmasters.org/-/media/files/department-documents/pathways-program-documents/evaluation-forms';
-      // Chinese titles below are sourced from the club's official Chinese
-      // evaluation-forms library (Toastmasters International), replacing
-      // earlier best-guess translations.
+      // Chinese titles below are sourced directly from the club's official
+      // evaluation-forms library filenames (with explicit CS-codes), which
+      // supersedes earlier best-guess translations and an earlier
+      // over-correction that had wrongly trimmed Level 1 to 3 projects.
       const COMMON_L1 = [
         [1, '初试啼声演讲'],
-        [2, '评估与反馈'],
-        [3, '研究和展示'],
+        [2, '撰写带有目的性的演讲稿'],
+        [3, '抑扬顿挫和肢体语言介绍'],
+        [4, '评估与反馈'],
       ];
       const PATHWAY_PROJECT_SEED = {
-        PM: { 2: [[1, '了解你的沟通风格'], [2, '有效的身体语言'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '说服型演讲']], 4: [[1, '应对棘手的听众']], 5: [[1, '为职业演讲做好准备'], [2, '反思你的学习路径']] },
-        EH: { 2: [[1, '与听众交流'], [2, '了解幽默感'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '通过幽默感吸引听众']], 4: [[1, '即兴演讲中增添幽默的威力']], 5: [[1, '发表包含幽默内容的演讲'], [2, '反思你的学习路径']] },
-        PI: { 2: [[1, '主动倾听'], [2, '了解你的领导风格'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '掌握解决冲突的方法']], 4: [[1, '在困境中领导']], 5: [[1, '高效领导力'], [2, '反思你的学习路径']] },
-        DL: { 2: [[1, '了解你的领导风格'], [2, '了解你的沟通风格'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '商议最佳结果']], 4: [[1, '管理变化']], 5: [[1, '应对不同情形的领导力'], [2, '反思你的学习路径']] },
-        VC: { 2: [[1, '了解你的领导风格'], [2, '了解你的沟通风格'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '制定沟通方案']], 4: [[1, '传达变化']], 5: [[1, '完善愿景'], [2, '反思你的学习路径']] },
-        MS: { 2: [[1, '主动倾听'], [2, '了解你的沟通风格'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '了解情商']], 4: [[1, '激励他人']], 5: [[1, '团队建设'], [2, '反思你的学习路径']] },
-        IP: { 2: [[1, '了解你的领导风格'], [2, '与听众交流'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '提出建议']], 4: [[1, '成功管理项目']], 5: [[1, '高效领导力'], [2, '反思你的学习路径']] },
-        SR: { 2: [[1, '了解你的领导风格'], [2, '主动倾听'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '通过社交建立关系']], 4: [[1, '公共关系策略']], 5: [[1, '带领志愿者组织'], [2, '反思你的学习路径']] },
-        EC: { 2: [[1, '了解你的领导风格'], [2, '了解你的沟通风格'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '达成共识']], 4: [[1, '积极教练下的成长']], 5: [[1, '高效领导力'], [2, '反思你的学习路径']] },
-        LD: { 2: [[1, '时间管理'], [2, '了解你的领导风格'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '计划与实施']], 4: [[1, '领导你的团队']], 5: [[1, '举办成功的活动'], [2, '反思你的学习路径']] },
-        TC: { 2: [[1, '了解你的领导风格'], [2, '主动倾听'], [3, '介绍 Toastmasters 导师计划']], 3: [[1, '成功合作']], 4: [[1, '激励他人']], 5: [[1, '应对不同情形的领导力'], [2, '反思你的学习路径']] },
+        PM: { 2: [[1, '了解你的沟通风格'], [2, '有效的身体语言'], [3, '介绍 Toastmasters 导师计划']], 4: [[1, '应对棘手的听众']], 5: [[1, '为职业演讲做好准备'], [2, '反思你的学习路径']] },
+        EH: { 2: [[1, '与听众交流'], [2, '了解幽默感'], [3, '介绍 Toastmasters 导师计划']], 4: [[1, '即兴演讲中增添幽默的威力']], 5: [[1, '发表包含幽默内容的演讲'], [2, '反思你的学习路径']] },
+        PI: { 2: [[1, '主动倾听'], [2, '了解你的领导风格'], [3, '介绍 Toastmasters 导师计划']], 4: [[1, '在困境中领导']], 5: [[1, '高效领导力'], [2, '反思你的学习路径']] },
+        DL: { 2: [[1, '了解你的领导风格'], [2, '了解你的沟通风格'], [3, '介绍 Toastmasters 导师计划']], 4: [[1, '管理变化']], 5: [[1, '应对不同情形的领导力'], [2, '反思你的学习路径']] },
+        VC: { 2: [[1, '了解你的领导风格'], [2, '了解你的沟通风格'], [3, '介绍 Toastmasters 导师计划']], 4: [[1, '传达变化']], 5: [[1, '完善愿景'], [2, '反思你的学习路径']] },
+        MS: { 2: [[1, '主动倾听'], [2, '了解你的沟通风格'], [3, '介绍 Toastmasters 导师计划']], 4: [[1, '激励他人']], 5: [[1, '团队建设'], [2, '反思你的学习路径']] },
+        IP: { 2: [[1, '了解你的领导风格'], [2, '与听众交流'], [3, '介绍 Toastmasters 导师计划']], 4: [[1, '成功管理项目']], 5: [[1, '高效领导力'], [2, '反思你的学习路径']] },
+        SR: { 2: [[1, '了解你的领导风格'], [2, '主动倾听'], [3, '介绍 Toastmasters 导师计划']], 4: [[1, '公共关系策略']], 5: [[1, '带领志愿者组织'], [2, '反思你的学习路径']] },
+        EC: { 2: [[1, '了解你的领导风格'], [2, '了解你的沟通风格'], [3, '介绍 Toastmasters 导师计划']], 4: [[1, '积极教练下的成长']], 5: [[1, '高效领导力'], [2, '反思你的学习路径']] },
+        LD: { 2: [[1, '时间管理'], [2, '了解你的领导风格'], [3, '介绍 Toastmasters 导师计划']], 4: [[1, '领导你的团队']], 5: [[1, '举办成功的活动'], [2, '反思你的学习路径']] },
+        TC: { 2: [[1, '了解你的领导风格'], [2, '主动倾听'], [3, '介绍 Toastmasters 导师计划']], 4: [[1, '激励他人']], 5: [[1, '应对不同情形的领导力'], [2, '反思你的学习路径']] },
       };
 
       const [seedPathways] = await conn.query('SELECT id, code FROM pathways');
@@ -261,24 +263,12 @@ async function ensureSchema() {
             );
             if (r.affectedRows > 0) correctedLevel1Projects++;
           }
-          // Level 1 only has 3 required projects; remove any leftover
-          // project_no 4/5 rows from older seed data, but only if nothing
-          // actually references that project row — a member's completion
-          // history, or a meeting agenda item that selected it for a
-          // speech — must never be deleted.
-          const [r2] = await conn.query(
-            'DELETE pp FROM pathway_projects pp WHERE pp.level_id = ? AND pp.project_no > 3 ' +
-            'AND NOT EXISTS (SELECT 1 FROM member_project_completion mpc WHERE mpc.project_id = pp.id) ' +
-            'AND NOT EXISTS (SELECT 1 FROM meeting_agenda ma WHERE ma.pathway_project_id = pp.id)',
-            [level1Id]
-          );
-          correctedLevel1Projects += r2.affectedRows;
         }
         const levels = PATHWAY_PROJECT_SEED[code];
         for (const levelNo of Object.keys(levels)) {
           const levelId = levelIdByCode[code + '-' + levelNo];
           if (!levelId) continue;
-          // Force-correct Levels 2-5 too (UPSERT): the Chinese titles
+          // Force-correct Levels 2, 4, 5 too (UPSERT): the Chinese titles
           // previously seeded here were reasonable best-guess translations,
           // now replaced with the club's verified official wording.
           for (const [projectNo, nameZh] of levels[levelNo]) {
@@ -291,19 +281,18 @@ async function ensureSchema() {
           }
         }
 
-        // Elective pools: Pathways lets a member pick from a shared menu of
-        // elective projects at Levels 3-5 (Level 3 is entirely elective —
-        // choose 2 — while Levels 4-5 add one elective choice alongside the
-        // required project already seeded above). Verified directly against
-        // the club's official path-checklist document across 4 sample paths
-        // and cross-checked against the evaluation-forms library. Added
-        // additively (INSERT IGNORE) starting at project_no 10 so they never
-        // collide with each path's required project_no 1 slot, and skipped
-        // if the title duplicates that path's own required project.
+        // Elective pools: Level 3 has no fixed required project at all — a
+        // member picks 2 from this full shared pool. Levels 4-5 add one
+        // elective choice alongside the required project already seeded
+        // above. Verified directly against the club's official evaluation-
+        // forms library (explicit CS-codes). Added additively (INSERT
+        // IGNORE) starting at project_no 10 so they never collide with each
+        // path's required project_no slots, and skipped if the title
+        // duplicates that path's own required project for that level.
         const ELECTIVE_POOLS = {
-          3: ['发表社交演讲', '使用演示软件', '故事产生共鸣', '创建高效的视觉辅助工具', '与听众交流', '通过社交建立关系', '关注积极的一面', '为面谈做好准备', '了解抑扬顿挫', '有效的身体语言', '了解幽默感', '研究和展示'],
-          4: ['创建博客', '建立社交媒体影响力', '创建引人入胜的博客', '在线会议管理', '公共关系策略', '问答环节'],
-          5: ['有所认知', '主持专题讨论', '高尚领导力', '带领志愿者组织', '为职业演讲做好准备', '高级导师计划', '360° 评估'],
+          3: ['研究和展示', '主动倾听', '与听众交流', '有效的身体语言', '了解幽默感', '故事产生共鸣', '创建高效的视觉辅助工具', '发表社交演讲', '制定沟通方案', '关注积极的一面', '激励你的听众', '通过社交建立关系', '商议最佳结果', '说服型演讲', '计划与实施', '为面谈做好准备', '提出建议', '达成共识', '成功合作', '了解抑扬顿挫', '使用描述性语言', '使用演示软件', '通过幽默感吸引听众', '掌握解决冲突的方法', '了解情商'],
+          4: ['建立社交媒体影响力', '传达变化', '创建播客', '积极教练下的成长', '在困境中领导', '领导你的团队', '管理变化', '在线会议管理', '成功管理项目', '应对棘手的听众', '激励他人', '公共关系策略', '问答环节', '创建引人入胜的博客', '即兴演讲中增添幽默的威力'],
+          5: ['完善愿景', '高尚领导力', '高效领导力', '应对不同情形的领导力', '带领志愿者组织', '有所认知', '举办成功的活动', '主持专题讨论', '为职业演讲做好准备', '反思你的学习路径', '团队建设', '发表包含幽默内容的演讲'],
         };
         for (const levelNo of Object.keys(ELECTIVE_POOLS)) {
           const levelId = levelIdByCode[code + '-' + levelNo];
@@ -437,6 +426,85 @@ async function ensureSchema() {
         );
         if (r.affectedRows > 0) seededResources++;
       }
+
+      // Second resource batch: the club's official CS-coded evaluation
+      // forms library (explicit item codes), which is the definitive
+      // source used to correct the pathway project data above.
+      const RESOURCE_SEED_2 = [
+        ['Level 1 · CS8100 评估与反馈', 'evaluation', '/resources/L1b-01.pdf'],
+        ['Level 1 · CS8101 初试啼声演讲', 'evaluation', '/resources/L1b-02.pdf'],
+        ['Level 1 · CS8103 撰写带有目的性的演讲稿', 'evaluation', '/resources/L1b-03.pdf'],
+        ['Level 1 · CS8104 抑扬顿挫和肢体语言介绍', 'evaluation', '/resources/L1b-04.pdf'],
+        ['Level 2 · CS8200 主动倾听', 'evaluation', '/resources/L2b-01.pdf'],
+        ['Level 2 · CS8201 与听众交流', 'evaluation', '/resources/L2b-02.pdf'],
+        ['Level 2 · CS8202 跨文化理解', 'evaluation', '/resources/L2b-03.pdf'],
+        ['Level 2 · CS8203 有效的身体语言', 'evaluation', '/resources/L2b-04.pdf'],
+        ['Level 2 · CS8204 介绍 Toastmasters 导师计划', 'evaluation', '/resources/L2b-05.pdf'],
+        ['Level 2 · CS8205 时间管理', 'evaluation', '/resources/L2b-06.pdf'],
+        ['Level 2 · CS8206 了解你的沟通风格', 'evaluation', '/resources/L2b-07.pdf'],
+        ['Level 2 · CS8207 了解你的领导风格', 'evaluation', '/resources/L2b-08.pdf'],
+        ['Level 2 · CS8208 了解幽默感', 'evaluation', '/resources/L2b-09.pdf'],
+        ['Level 3 · CS8102 研究和展示', 'evaluation', '/resources/L3b-01.pdf'],
+        ['Level 3 · CS8200 主动倾听', 'evaluation', '/resources/L3b-02.pdf'],
+        ['Level 3 · CS8201 与听众交流', 'evaluation', '/resources/L3b-03.pdf'],
+        ['Level 3 · CS8203 有效的身体语言', 'evaluation', '/resources/L3b-04.pdf'],
+        ['Level 3 · CS8300 故事产生共鸣', 'evaluation', '/resources/L3b-05.pdf'],
+        ['Level 3 · CS8301 创建高效的视觉辅助工具', 'evaluation', '/resources/L3b-06.pdf'],
+        ['Level 3 · CS8302 发表社交演讲', 'evaluation', '/resources/L3b-07.pdf'],
+        ['Level 3 · CS8303 制定沟通方案', 'evaluation', '/resources/L3b-08.pdf'],
+        ['Level 3 · CS8304 关注积极的一面', 'evaluation', '/resources/L3b-09.pdf'],
+        ['Level 3 · CS8305 激励你的听众', 'evaluation', '/resources/L3b-10.pdf'],
+        ['Level 3 · CS8306 通过社交建立关系', 'evaluation', '/resources/L3b-11.pdf'],
+        ['Level 3 · CS8307 商议最佳结果', 'evaluation', '/resources/L3b-12.pdf'],
+        ['Level 3 · CS8308 说服型演讲', 'evaluation', '/resources/L3b-13.pdf'],
+        ['Level 3 · CS8309 计划与实施', 'evaluation', '/resources/L3b-14.pdf'],
+        ['Level 3 · CS8310 为面谈做好准备', 'evaluation', '/resources/L3b-15.pdf'],
+        ['Level 3 · CS8312 提出建议', 'evaluation', '/resources/L3b-16.pdf'],
+        ['Level 3 · CS8313 达成共识', 'evaluation', '/resources/L3b-17.pdf'],
+        ['Level 3 · CS8314 成功合作', 'evaluation', '/resources/L3b-18.pdf'],
+        ['Level 3 · CS8317 了解抑扬顿挫', 'evaluation', '/resources/L3b-19.pdf'],
+        ['Level 3 · CS8318 使用描述性语言', 'evaluation', '/resources/L3b-20.pdf'],
+        ['Level 3 · CS8319 使用演示软件', 'evaluation', '/resources/L3b-21.pdf'],
+        ['Level 3 · CS8320 通过幽默感吸引听众', 'evaluation', '/resources/L3b-22.pdf'],
+        ['Level 3 · CS8208 了解幽默感', 'evaluation', '/resources/L3b-23.pdf'],
+        ['Level 3 · 掌握解决冲突的方法', 'evaluation', '/resources/L3b-24.pdf'],
+        ['Level 3 · 了解情商', 'evaluation', '/resources/L3b-25.pdf'],
+        ['Level 4 · CS8400 建立社交媒体影响力', 'evaluation', '/resources/L4b-01.pdf'],
+        ['Level 4 · CS8401 传达变化', 'evaluation', '/resources/L4b-02.pdf'],
+        ['Level 4 · CS8402 创建播客', 'evaluation', '/resources/L4b-03.pdf'],
+        ['Level 4 · CS8403 积极教练下的成长', 'evaluation', '/resources/L4b-04.pdf'],
+        ['Level 4 · CS8404 在困境中领导', 'evaluation', '/resources/L4b-05.pdf'],
+        ['Level 4 · CS8405 领导你的团队', 'evaluation', '/resources/L4b-06.pdf'],
+        ['Level 4 · CS8406 管理变化', 'evaluation', '/resources/L4b-07.pdf'],
+        ['Level 4 · CS8407 在线会议管理', 'evaluation', '/resources/L4b-08.pdf'],
+        ['Level 4 · CS8408 成功管理项目', 'evaluation', '/resources/L4b-09.pdf'],
+        ['Level 4 · CS8409 应对棘手的听众', 'evaluation', '/resources/L4b-10.pdf'],
+        ['Level 4 · CS8411 激励他人', 'evaluation', '/resources/L4b-11.pdf'],
+        ['Level 4 · CS8412 公共关系策略', 'evaluation', '/resources/L4b-12.pdf'],
+        ['Level 4 · CS8413 问答环节', 'evaluation', '/resources/L4b-13.pdf'],
+        ['Level 4 · CS8414 创建引人入胜的博客', 'evaluation', '/resources/L4b-14.pdf'],
+        ['Level 4 · CS8415 即兴演讲中增添幽默的威力', 'evaluation', '/resources/L4b-15.pdf'],
+        ['Level 5 · CS8501 完善愿景', 'evaluation', '/resources/L5b-01.pdf'],
+        ['Level 5 · CS8502 高尚领导力', 'evaluation', '/resources/L5b-02.pdf'],
+        ['Level 5 · CS8503 高效领导力', 'evaluation', '/resources/L5b-03.pdf'],
+        ['Level 5 · CS8504 应对不同情形的领导力', 'evaluation', '/resources/L5b-04.pdf'],
+        ['Level 5 · CS8505 带领志愿者组织', 'evaluation', '/resources/L5b-05.pdf'],
+        ['Level 5 · CS8506 有所认知', 'evaluation', '/resources/L5b-06.pdf'],
+        ['Level 5 · CS8507 举办成功的活动', 'evaluation', '/resources/L5b-07.pdf'],
+        ['Level 5 · CS8508 主持专题讨论', 'evaluation', '/resources/L5b-08.pdf'],
+        ['Level 5 · CS8509 为职业演讲做好准备', 'evaluation', '/resources/L5b-09.pdf'],
+        ['Level 5 · CS8510 反思你的学习路径', 'evaluation', '/resources/L5b-10.pdf'],
+        ['Level 5 · CS8511 团队建设', 'evaluation', '/resources/L5b-11.pdf'],
+        ['Level 5 · CS8512 发表包含幽默内容的演讲', 'evaluation', '/resources/L5b-12.pdf'],
+      ];
+      for (const [labelZh, category, url] of RESOURCE_SEED_2) {
+        const [r] = await conn.query(
+          'INSERT IGNORE INTO resource_library (label_zh, category, url) VALUES (?,?,?)',
+          [labelZh, category, url]
+        );
+        if (r.affectedRows > 0) seededResources++;
+      }
+
       if (seededResources > 0) {
         console.log(`Migration: seeded ${seededResources} resource(s) into the Resource Library`);
       }
