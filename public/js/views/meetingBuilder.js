@@ -18,7 +18,8 @@ function renderBuilderContent(viewOnly) {
   const editable = !viewOnly;
 
   let lastSection = null;
-  const rowsHtml = (m.agenda || []).map(function (row) {
+  const agendaRows = m.agenda || [];
+  const rowsHtml = agendaRows.map(function (row, idx) {
     let sectionHtml = '';
     if (row.section_label && row.section_label !== lastSection) {
       sectionHtml = '<div class="section-divider">' + escapeHtml(row.section_label) + '</div>';
@@ -26,7 +27,7 @@ function renderBuilderContent(viewOnly) {
     } else if (!row.section_label) {
       lastSection = null;
     }
-    return sectionHtml + renderAgendaRow(row, editable);
+    return sectionHtml + renderAgendaRow(row, editable, idx === 0, idx === agendaRows.length - 1);
   }).join('');
 
   const roleAssignmentsHtml = renderRoleAssignmentsSection(m.roleAssignments || [], editable);
@@ -177,7 +178,7 @@ function openRoleAssignModal(roleId, assignmentId) {
   });
 }
 
-function renderAgendaRow(row, editable) {
+function renderAgendaRow(row, editable, isFirst, isLast) {
   const speakerLabel = row.speaker_name || row.speaker_guest_name || '';
   const respLabel = row.responsible_name || row.responsible_label || '';
   let metaBadges = '';
@@ -187,10 +188,18 @@ function renderAgendaRow(row, editable) {
 
   const evalSub = row.evaluates_summary ? (I18N.lang === 'zh' ? '评论：' : 'Evaluates: ') + (row.evaluates_speaker_name || row.evaluates_guest_name || '') : '';
 
+  const moveButtonsHtml = editable
+    ? '<div class="agenda-row-move-btns no-print">' +
+        '<button type="button" class="btn btn-icon move-up-btn" data-row-id="' + row.id + '"' + (isFirst ? ' disabled' : '') + ' title="' + escapeHtml(t('move_up')) + '"><i class="ti ti-chevron-up"></i></button>' +
+        '<button type="button" class="btn btn-icon move-down-btn" data-row-id="' + row.id + '"' + (isLast ? ' disabled' : '') + ' title="' + escapeHtml(t('move_down')) + '"><i class="ti ti-chevron-down"></i></button>' +
+      '</div>'
+    : '';
+
   return (
     '<div class="agenda-row" data-row-id="' + row.id + '">' +
       '<div class="agenda-row-head" data-toggle="' + row.id + '">' +
         (editable ? '<i class="ti ti-grip-vertical drag-handle"></i>' : '') +
+        moveButtonsHtml +
         '<div class="agenda-row-time">' + (row.scheduled_time || '') + '</div>' +
         '<div class="agenda-row-summary">' +
           '<div class="title">' + escapeHtml(row.type_label || '') + (row.summary_zh ? '　' + escapeHtml(row.summary_zh) : '') + '</div>' +
@@ -386,6 +395,22 @@ function wireBuilderEvents(editable) {
     });
   });
 
+  document.querySelectorAll('.move-up-btn').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (btn.disabled) return;
+      moveAgendaRow(btn.dataset.rowId, -1);
+    });
+  });
+
+  document.querySelectorAll('.move-down-btn').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (btn.disabled) return;
+      moveAgendaRow(btn.dataset.rowId, 1);
+    });
+  });
+
   document.querySelectorAll('[data-toggle]').forEach(function (head) {
     head.addEventListener('click', function () {
       const detail = head.nextElementSibling;
@@ -461,6 +486,24 @@ function wireBuilderEvents(editable) {
       } catch (err) { toast(err.message, 'error'); }
     });
   });
+}
+
+async function moveAgendaRow(rowId, delta) {
+  const agenda = (builderState.meeting.agenda || []).slice();
+  const idx = agenda.findIndex(function (r) { return String(r.id) === String(rowId); });
+  const newIdx = idx + delta;
+  if (idx === -1 || newIdx < 0 || newIdx >= agenda.length) return;
+
+  const tmp = agenda[idx];
+  agenda[idx] = agenda[newIdx];
+  agenda[newIdx] = tmp;
+
+  try {
+    await API.put('/meetings/' + builderState.meeting.id + '/agenda/reorder', {
+      order: agenda.map(function (r) { return r.id; }),
+    });
+    await refreshMeeting(true);
+  } catch (err) { toast(err.message, 'error'); }
 }
 
 async function refreshMeeting(editable) {

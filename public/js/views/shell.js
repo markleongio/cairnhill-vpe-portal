@@ -22,6 +22,7 @@ function renderShell(currentPath, contentHtml) {
 
   app.innerHTML =
     '<div class="shell">' +
+      '<div class="sidebar-backdrop" id="sidebar-backdrop"></div>' +
       '<aside class="sidebar" id="sidebar">' +
         '<div class="sidebar-brand">' +
           '<div class="mark">禧</div>' +
@@ -36,7 +37,7 @@ function renderShell(currentPath, contentHtml) {
       '</aside>' +
       '<div class="main">' +
         '<div class="topbar no-print">' +
-          '<button class="btn btn-icon" id="mobile-nav-toggle" style="display:none"><i class="ti ti-menu-2"></i></button>' +
+          '<button class="btn btn-icon" id="mobile-nav-toggle"><i class="ti ti-menu-2"></i></button>' +
           '<div class="muted small">' + fmtDate(new Date().toISOString().slice(0,10)) + '</div>' +
           '<div class="flex gap-8"><span class="badge badge-navy">' + ((Store.user && Store.user.role === 'admin') ? t('role_admin') : t('role_exco')) + '</span></div>' +
         '</div>' +
@@ -45,6 +46,27 @@ function renderShell(currentPath, contentHtml) {
     '</div>';
 
   document.getElementById('content').innerHTML = contentHtml;
+
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+
+  function closeSidebar() {
+    sidebar.classList.remove('open');
+    backdrop.classList.remove('open');
+  }
+
+  document.getElementById('mobile-nav-toggle').addEventListener('click', function () {
+    sidebar.classList.toggle('open');
+    backdrop.classList.toggle('open');
+  });
+
+  backdrop.addEventListener('click', closeSidebar);
+
+  // On phones the sidebar overlays the page, so close it as soon as the
+  // person taps a destination — otherwise it stays open over the new screen.
+  document.querySelectorAll('.nav-item').forEach(function (item) {
+    item.addEventListener('click', closeSidebar);
+  });
 
   document.getElementById('logout-btn').addEventListener('click', async function () {
     await API.post('/auth/logout');
