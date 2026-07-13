@@ -272,6 +272,23 @@ router.post('/:id/agenda', async (req, res) => {
   }
 });
 
+// Registered before the generic '/:id/agenda/:agendaId' route below —
+// otherwise Express matches that route first and treats the literal
+// path segment "reorder" as an agendaId value.
+router.put('/:id/agenda/reorder', async (req, res) => {
+  try {
+    const order = req.body.order;
+    if (!Array.isArray(order)) return res.status(400).json({ error: 'order array required' });
+    for (let idx = 0; idx < order.length; idx++) {
+      await run('UPDATE meeting_agenda SET sort_order = ? WHERE id = ? AND meeting_id = ?', [idx, order[idx], req.params.id]);
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.put('/:id/agenda/:agendaId', async (req, res) => {
   try {
     const fields = [
@@ -303,20 +320,6 @@ router.put('/:id/agenda/:agendaId', async (req, res) => {
 router.delete('/:id/agenda/:agendaId', async (req, res) => {
   try {
     await run('DELETE FROM meeting_agenda WHERE id = ? AND meeting_id = ?', [req.params.agendaId, req.params.id]);
-    res.json({ ok: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-router.put('/:id/agenda/reorder', async (req, res) => {
-  try {
-    const order = req.body.order;
-    if (!Array.isArray(order)) return res.status(400).json({ error: 'order array required' });
-    for (let idx = 0; idx < order.length; idx++) {
-      await run('UPDATE meeting_agenda SET sort_order = ? WHERE id = ? AND meeting_id = ?', [idx, order[idx], req.params.id]);
-    }
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
