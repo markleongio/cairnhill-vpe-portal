@@ -17,7 +17,7 @@ const PATHWAY_LEGEND = [
 // QR code (renderPublicAgenda). Keeping this in one place means the two
 // can never visually drift apart. includeQr is only meaningful for
 // published meetings — a QR code pointing at a draft would just 404.
-function buildPrintPageHtml(m, includeQr) {
+function buildPrintPageHtml(m, includeQr, includeSocial) {
   let sectionLastSeen = null;
   const agendaTableRows = (m.agenda || []).map(function (row) {
     let rows = '';
@@ -151,8 +151,10 @@ function buildPrintPageHtml(m, includeQr) {
         ? '<div class="print-qr-row">' +
             '<div id="print-qr-canvas"></div>' +
             '<div class="qr-caption">扫码在线查看议程<br>Scan to view online</div>' +
+            (includeSocial ? buildSocialLinksHtml(m.clubSocial) : '') +
           '</div>'
-        : '') +
+        : (includeSocial ? '<div class="print-qr-row">' + buildSocialLinksHtml(m.clubSocial) + '</div>' : '')
+      ) +
       '<div class="print-pathway-legend">' +
         '<div class="legend-title">新路径 ：Pathways 十一大路线</div>' +
         '<div class="legend-grid">' +
@@ -178,7 +180,7 @@ async function renderPrintAgenda(meetingId) {
           '<button class="btn btn-primary btn-sm" id="download-jpeg-btn"><i class="ti ti-photo"></i> 下载图片 (JPEG)</button>' +
         '</div>' +
       '</div>' +
-      buildPrintPageHtml(m, includeQr) +
+      buildPrintPageHtml(m, includeQr, includeQr) +
     '</div>';
 
   if (includeQr) renderQrCode('print-qr-canvas', window.location.origin + '/#/public/meetings/' + m.id);
@@ -204,13 +206,35 @@ async function renderPublicAgenda(meetingId) {
   }
   app.innerHTML =
     '<div style="background:var(--paper-100);min-height:100vh;padding:24px 16px;">' +
-      buildPrintPageHtml(m, false) +
+      buildPrintPageHtml(m, false, true) +
     '</div>';
 }
 
 function memberName(id) {
   const found = Store.members.filter(function (x) { return x.id === Number(id); })[0];
   return found ? found.full_name : '';
+}
+
+// Builds the club's social channel icons (only the ones actually configured
+// in Club Settings). Used beside the QR code in print, and again on the
+// public post-scan view.
+function buildSocialLinksHtml(clubSocial) {
+  clubSocial = clubSocial || {};
+  const platforms = [
+    ['youtube_url', 'ti-brand-youtube', 'YouTube'],
+    ['facebook_url', 'ti-brand-facebook', 'Facebook'],
+    ['instagram_url', 'ti-brand-instagram', 'Instagram'],
+    ['linkedin_url', 'ti-brand-linkedin', 'LinkedIn'],
+    ['tiktok_url', 'ti-brand-tiktok', 'TikTok'],
+  ];
+  const icons = platforms
+    .filter(function (p) { return clubSocial[p[0]]; })
+    .map(function (p) {
+      return '<a href="' + escapeHtml(clubSocial[p[0]]) + '" target="_blank" class="social-icon" title="' + p[2] + '"><i class="ti ' + p[1] + '"></i></a>';
+    })
+    .join('');
+  if (!icons) return '';
+  return '<div class="social-links">' + icons + '</div>';
 }
 
 // Splits free-text like "邱兰英 L5分区总监" into { name: "邱兰英", designation: "L5分区总监" }

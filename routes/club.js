@@ -27,6 +27,7 @@ router.put('/', requireAdmin, async (req, res) => {
       'club_name_zh', 'club_name_en', 'club_number', 'district_label',
       'default_venue', 'meeting_day', 'meeting_time', 'tagline',
       'mission_statement', 'dress_code',
+      'youtube_url', 'facebook_url', 'instagram_url', 'linkedin_url', 'tiktok_url',
     ];
     const updates = [];
     const params = [];

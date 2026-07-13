@@ -112,7 +112,11 @@ async function getMeetingFullDetail(id) {
     [id]
   );
 
-  return Object.assign({}, meeting, { agenda: agenda, visitors: visitors, exco: exco, roleAssignments: roleAssignments });
+  const clubSocial = await get(
+    'SELECT youtube_url, facebook_url, instagram_url, linkedin_url, tiktok_url FROM club_settings WHERE id = 1'
+  );
+
+  return Object.assign({}, meeting, { agenda: agenda, visitors: visitors, exco: exco, roleAssignments: roleAssignments, clubSocial: clubSocial || {} });
 }
 router.getMeetingFullDetail = getMeetingFullDetail;
 

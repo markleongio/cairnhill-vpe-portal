@@ -78,6 +78,16 @@ async function loadMastersContent() {
       '<div class="field"><label>' + escapeHtml(t('tagline_label')) + '</label><input type="text" id="cs-tagline" value="' + escapeHtml(clubSettings.tagline || '') + '"></div>' +
       '<div class="field"><label>' + escapeHtml(t('mission_statement_label')) + '</label><textarea id="cs-mission">' + escapeHtml(clubSettings.mission_statement || '') + '</textarea></div>' +
       '<div class="field"><label>' + escapeHtml(t('dress_code_label')) + '</label><input type="text" id="cs-dress" value="' + escapeHtml(clubSettings.dress_code || '') + '"></div>' +
+      '<h3 class="mt-16">' + escapeHtml(t('social_links_section')) + '</h3>' +
+      '<div class="field-row">' +
+        '<div class="field"><label><i class="ti ti-brand-youtube"></i> YouTube</label><input type="text" id="cs-youtube" value="' + escapeHtml(clubSettings.youtube_url || '') + '" placeholder="https://youtube.com/@..."></div>' +
+        '<div class="field"><label><i class="ti ti-brand-facebook"></i> Facebook</label><input type="text" id="cs-facebook" value="' + escapeHtml(clubSettings.facebook_url || '') + '" placeholder="https://facebook.com/..."></div>' +
+      '</div>' +
+      '<div class="field-row">' +
+        '<div class="field"><label><i class="ti ti-brand-instagram"></i> Instagram</label><input type="text" id="cs-instagram" value="' + escapeHtml(clubSettings.instagram_url || '') + '" placeholder="https://instagram.com/..."></div>' +
+        '<div class="field"><label><i class="ti ti-brand-linkedin"></i> LinkedIn</label><input type="text" id="cs-linkedin" value="' + escapeHtml(clubSettings.linkedin_url || '') + '" placeholder="https://linkedin.com/company/..."></div>' +
+      '</div>' +
+      '<div class="field"><label><i class="ti ti-brand-tiktok"></i> TikTok</label><input type="text" id="cs-tiktok" value="' + escapeHtml(clubSettings.tiktok_url || '') + '" placeholder="https://tiktok.com/@..."></div>' +
       '<button class="btn btn-primary btn-sm" id="save-club-btn"><i class="ti ti-device-floppy"></i> ' + escapeHtml(t('save_club_settings')) + '</button>' +
     '</div>' +
 
@@ -123,6 +133,11 @@ async function loadMastersContent() {
         tagline: document.getElementById('cs-tagline').value.trim() || null,
         mission_statement: document.getElementById('cs-mission').value.trim() || null,
         dress_code: document.getElementById('cs-dress').value.trim() || null,
+        youtube_url: document.getElementById('cs-youtube').value.trim() || null,
+        facebook_url: document.getElementById('cs-facebook').value.trim() || null,
+        instagram_url: document.getElementById('cs-instagram').value.trim() || null,
+        linkedin_url: document.getElementById('cs-linkedin').value.trim() || null,
+        tiktok_url: document.getElementById('cs-tiktok').value.trim() || null,
       });
       toast(I18N.lang === 'zh' ? '已保存俱乐部设置' : 'Club settings saved', 'success');
     } catch (err) { toast(err.message, 'error'); }

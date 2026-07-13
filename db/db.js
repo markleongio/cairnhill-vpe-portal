@@ -81,6 +81,11 @@ const COLUMN_MIGRATIONS = [
   ['meetings', 'start_time_for_calc', 'VARCHAR(20)'],
   ['pathways', 'is_active', 'TINYINT NOT NULL DEFAULT 1'],
   ['meetings', 'footer_remarks', 'VARCHAR(1000)'],
+  ['club_settings', 'youtube_url', 'VARCHAR(500)'],
+  ['club_settings', 'facebook_url', 'VARCHAR(500)'],
+  ['club_settings', 'instagram_url', 'VARCHAR(500)'],
+  ['club_settings', 'linkedin_url', 'VARCHAR(500)'],
+  ['club_settings', 'tiktok_url', 'VARCHAR(500)'],
 ];
 
 let schemaReadyPromise = null;

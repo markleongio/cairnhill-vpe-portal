@@ -141,6 +141,11 @@ CREATE TABLE IF NOT EXISTS club_settings (
   tagline         VARCHAR(255) DEFAULT '训练口才的讲台，交流知识的平台，挥洒才情的舞台',
   mission_statement VARCHAR(500) DEFAULT '我们提供互助互益的学习体验，使会员提高沟通和领导能力，最终达到提高自信，促进个人成长的目标',
   dress_code      VARCHAR(500) DEFAULT '女士服装端庄大方，男士衬衫长裤。欢迎公众人士观摩',
+  youtube_url     VARCHAR(500),
+  facebook_url    VARCHAR(500),
+  instagram_url   VARCHAR(500),
+  linkedin_url    VARCHAR(500),
+  tiktok_url      VARCHAR(500),
   updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT chk_singleton CHECK (id = 1)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

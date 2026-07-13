@@ -193,6 +193,7 @@ const I18N = {
     tagline_label: { zh: '标语', en: 'Tagline' },
     mission_statement_label: { zh: '分会使命', en: 'Mission statement' },
     dress_code_label: { zh: '衣着要求', en: 'Dress code' },
+    social_links_section: { zh: '社交媒体链接', en: 'Social Media Links' },
     save_club_settings: { zh: '保存俱乐部设置', en: 'Save club settings' },
 
     // Exco term records (条件 c + d)
