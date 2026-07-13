@@ -328,6 +328,22 @@ async function ensureSchema() {
           const levelId = levelIdByCode[code + '-' + levelNo];
           if (!levelId) continue;
           const requiredTitles = (levels[levelNo] || []).map(function (pair) { return pair[1]; });
+
+          // Clear out unreferenced elective rows first. This matters because
+          // project_no here is assigned by array position, and an earlier
+          // deploy's (shorter/different) elective list can leave old rows
+          // occupying project_no slots that INSERT IGNORE then silently
+          // refuses to overwrite — even when the intended text has changed —
+          // causing newer elective titles to quietly never appear. Rows
+          // actually in use (a member's completion, or an agenda item that
+          // selected that project) are never deleted.
+          const [rDel] = await conn.query(
+            'DELETE pp FROM pathway_projects pp WHERE pp.level_id = ? AND pp.project_no >= 10 ' +
+            'AND NOT EXISTS (SELECT 1 FROM member_project_completion mpc WHERE mpc.project_id = pp.id) ' +
+            'AND NOT EXISTS (SELECT 1 FROM meeting_agenda ma WHERE ma.pathway_project_id = pp.id)',
+            [levelId]
+          );
+
           let seq = 10;
           for (const electiveName of ELECTIVE_POOLS[levelNo]) {
             if (requiredTitles.indexOf(electiveName) !== -1) continue; // don't duplicate this path's own required project
