@@ -272,6 +272,7 @@ CREATE TABLE IF NOT EXISTS resource_library (
   url           VARCHAR(500) NOT NULL,
   applies_to_type_id INT,
   notes         TEXT,
+  UNIQUE KEY uniq_resource_url (url(255)),
   FOREIGN KEY (applies_to_type_id) REFERENCES agenda_item_types(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

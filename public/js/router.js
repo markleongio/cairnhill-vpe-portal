@@ -7,6 +7,11 @@ function navigate(path) {
 async function handleRoute() {
   const hash = location.hash.replace(/^#/, '') || '/dashboard';
 
+  // Public, unauthenticated route — reached via the QR code on a published
+  // meeting's print page. Must be checked before the login gate below.
+  const publicMeetingMatch = hash.match(/^\/public\/meetings\/(\d+)$/);
+  if (publicMeetingMatch) return renderPublicAgenda(publicMeetingMatch[1]);
+
   const printMatch = hash.match(/^\/meetings\/(\d+)\/print$/);
 
   if (!Store.user) {

@@ -15,6 +15,7 @@ const resourceRoutes = require('./routes/resources');
 const usersRoutes = require('./routes/users');
 const mastersRoutes = require('./routes/masters');
 const clubRoutes = require('./routes/club');
+const publicRoutes = require('./routes/public');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -64,6 +65,7 @@ app.use('/api/resources', requireAuth, resourceRoutes);
 app.use('/api/users', requireAuth, usersRoutes);
 app.use('/api/masters', requireAuth, mastersRoutes);
 app.use('/api/club', requireAuth, clubRoutes);
+app.use('/api/public', publicRoutes);
 
 app.locals.requireAdmin = requireAdmin;
 

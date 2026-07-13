@@ -48,60 +48,79 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Shared by the authenticated GET /:id below and routes/public.js (the
+// unauthenticated, published-only view reached via the print page's QR
+// code). Kept as one function so the two never drift out of sync.
+async function getMeetingFullDetail(id) {
+  const meeting = await get(
+    'SELECT m.*, ' +
+    'bs.full_name AS best_speaker_name, be.full_name AS best_evaluator_name, btt.full_name AS best_table_topics_name ' +
+    'FROM meetings m ' +
+    'LEFT JOIN members bs ON m.best_speaker_id = bs.id ' +
+    'LEFT JOIN members be ON m.best_evaluator_id = be.id ' +
+    'LEFT JOIN members btt ON m.best_table_topics_id = btt.id ' +
+    'WHERE m.id = ?',
+    [id]
+  );
+  if (!meeting) return null;
+
+  const agenda = await all(
+    'SELECT ma.*, ait.type_key, ait.label_zh AS type_label, ait.label_en AS type_label_en, ' +
+    'ait.requires_pathway, ait.requires_evaluator, ait.requires_evaluates_selection, ' +
+    'sm.full_name AS speaker_name, sm.chinese_name AS speaker_chinese_name, ' +
+    'rm.full_name AS responsible_name, rm.chinese_name AS responsible_chinese_name, ' +
+    'p.name_zh AS pathway_name, p.code AS pathway_code, ' +
+    'pp.project_name_zh, pl.level_no, pl.level_label, ' +
+    'sp.code AS speaker_primary_pathway_code, smp.current_level AS speaker_primary_level, ' +
+    'rp.code AS responsible_primary_pathway_code, rmp.current_level AS responsible_primary_level, ' +
+    'eval_row.summary_zh AS evaluates_summary, eval_sm.full_name AS evaluates_speaker_name, eval_row.speaker_guest_name AS evaluates_guest_name ' +
+    'FROM meeting_agenda ma ' +
+    'JOIN agenda_item_types ait ON ma.item_type_id = ait.id ' +
+    'LEFT JOIN members sm ON ma.speaker_member_id = sm.id ' +
+    'LEFT JOIN members rm ON ma.responsible_member_id = rm.id ' +
+    'LEFT JOIN pathways p ON ma.pathway_id = p.id ' +
+    'LEFT JOIN pathway_projects pp ON ma.pathway_project_id = pp.id ' +
+    'LEFT JOIN pathway_levels pl ON pp.level_id = pl.id ' +
+    'LEFT JOIN member_progress smp ON smp.member_id = ma.speaker_member_id AND smp.is_primary_pathway = 1 ' +
+    'LEFT JOIN pathways sp ON sp.id = smp.pathway_id ' +
+    'LEFT JOIN member_progress rmp ON rmp.member_id = ma.responsible_member_id AND rmp.is_primary_pathway = 1 ' +
+    'LEFT JOIN pathways rp ON rp.id = rmp.pathway_id ' +
+    'LEFT JOIN meeting_agenda eval_row ON ma.evaluates_agenda_id = eval_row.id ' +
+    'LEFT JOIN members eval_sm ON eval_row.speaker_member_id = eval_sm.id ' +
+    'WHERE ma.meeting_id = ? ORDER BY ma.sort_order',
+    [id]
+  );
+
+  const visitors = await all('SELECT * FROM visitors_log WHERE meeting_id = ?', [id]);
+
+  const exco = meeting.term_label
+    ? await all(
+        'SELECT et.*, r.role_name_zh, r.role_name_en, m.full_name, m.chinese_name, m.member_no ' +
+        'FROM exco_terms et JOIN exco_roles r ON et.role_id = r.id JOIN members m ON et.member_id = m.id ' +
+        'WHERE et.term_label = ? ORDER BY r.sort_order',
+        [meeting.term_label]
+      )
+    : [];
+
+  const roleAssignments = await all(
+    'SELECT mra.*, mdr.role_name_zh, mdr.role_name_en, mdr.sort_order AS role_sort_order, ' +
+    'm.full_name AS member_name, m.chinese_name AS member_chinese_name ' +
+    'FROM meeting_role_assignments mra ' +
+    'JOIN meeting_day_roles mdr ON mra.role_id = mdr.id ' +
+    'LEFT JOIN members m ON mra.member_id = m.id ' +
+    'WHERE mra.meeting_id = ? ORDER BY mdr.sort_order',
+    [id]
+  );
+
+  return Object.assign({}, meeting, { agenda: agenda, visitors: visitors, exco: exco, roleAssignments: roleAssignments });
+}
+router.getMeetingFullDetail = getMeetingFullDetail;
+
 router.get('/:id', async (req, res) => {
   try {
-    const meeting = await get('SELECT * FROM meetings WHERE id = ?', [req.params.id]);
-    if (!meeting) return res.status(404).json({ error: 'Meeting not found' });
-
-    const agenda = await all(
-      'SELECT ma.*, ait.type_key, ait.label_zh AS type_label, ait.label_en AS type_label_en, ' +
-      'ait.requires_pathway, ait.requires_evaluator, ait.requires_evaluates_selection, ' +
-      'sm.full_name AS speaker_name, sm.chinese_name AS speaker_chinese_name, ' +
-      'rm.full_name AS responsible_name, rm.chinese_name AS responsible_chinese_name, ' +
-      'p.name_zh AS pathway_name, p.code AS pathway_code, ' +
-      'pp.project_name_zh, pl.level_no, pl.level_label, ' +
-      'sp.code AS speaker_primary_pathway_code, smp.current_level AS speaker_primary_level, ' +
-      'rp.code AS responsible_primary_pathway_code, rmp.current_level AS responsible_primary_level, ' +
-      'eval_row.summary_zh AS evaluates_summary, eval_sm.full_name AS evaluates_speaker_name, eval_row.speaker_guest_name AS evaluates_guest_name ' +
-      'FROM meeting_agenda ma ' +
-      'JOIN agenda_item_types ait ON ma.item_type_id = ait.id ' +
-      'LEFT JOIN members sm ON ma.speaker_member_id = sm.id ' +
-      'LEFT JOIN members rm ON ma.responsible_member_id = rm.id ' +
-      'LEFT JOIN pathways p ON ma.pathway_id = p.id ' +
-      'LEFT JOIN pathway_projects pp ON ma.pathway_project_id = pp.id ' +
-      'LEFT JOIN pathway_levels pl ON pp.level_id = pl.id ' +
-      'LEFT JOIN member_progress smp ON smp.member_id = ma.speaker_member_id AND smp.is_primary_pathway = 1 ' +
-      'LEFT JOIN pathways sp ON sp.id = smp.pathway_id ' +
-      'LEFT JOIN member_progress rmp ON rmp.member_id = ma.responsible_member_id AND rmp.is_primary_pathway = 1 ' +
-      'LEFT JOIN pathways rp ON rp.id = rmp.pathway_id ' +
-      'LEFT JOIN meeting_agenda eval_row ON ma.evaluates_agenda_id = eval_row.id ' +
-      'LEFT JOIN members eval_sm ON eval_row.speaker_member_id = eval_sm.id ' +
-      'WHERE ma.meeting_id = ? ORDER BY ma.sort_order',
-      [req.params.id]
-    );
-
-    const visitors = await all('SELECT * FROM visitors_log WHERE meeting_id = ?', [req.params.id]);
-
-    const exco = meeting.term_label
-      ? await all(
-          'SELECT et.*, r.role_name_zh, r.role_name_en, m.full_name, m.chinese_name, m.member_no ' +
-          'FROM exco_terms et JOIN exco_roles r ON et.role_id = r.id JOIN members m ON et.member_id = m.id ' +
-          'WHERE et.term_label = ? ORDER BY r.sort_order',
-          [meeting.term_label]
-        )
-      : [];
-
-    const roleAssignments = await all(
-      'SELECT mra.*, mdr.role_name_zh, mdr.role_name_en, mdr.sort_order AS role_sort_order, ' +
-      'm.full_name AS member_name, m.chinese_name AS member_chinese_name ' +
-      'FROM meeting_role_assignments mra ' +
-      'JOIN meeting_day_roles mdr ON mra.role_id = mdr.id ' +
-      'LEFT JOIN members m ON mra.member_id = m.id ' +
-      'WHERE mra.meeting_id = ? ORDER BY mdr.sort_order',
-      [req.params.id]
-    );
-
-    res.json(Object.assign({}, meeting, { agenda: agenda, visitors: visitors, exco: exco, roleAssignments: roleAssignments }));
+    const detail = await getMeetingFullDetail(req.params.id);
+    if (!detail) return res.status(404).json({ error: 'Meeting not found' });
+    res.json(detail);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

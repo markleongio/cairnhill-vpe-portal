@@ -12,11 +12,12 @@ const PATHWAY_LEGEND = [
   '发展领导 - LD', '团队协作 - TC',
 ];
 
-async function renderPrintAgenda(meetingId) {
-  const app = document.getElementById('app');
-  app.innerHTML = '<div class="empty-state">加载中…</div>';
-  const m = await API.get('/meetings/' + meetingId);
-
+// Builds the .print-page card HTML shared by the authenticated print view
+// (renderPrintAgenda) and the public, unauthenticated view reached via the
+// QR code (renderPublicAgenda). Keeping this in one place means the two
+// can never visually drift apart. includeQr is only meaningful for
+// published meetings — a QR code pointing at a draft would just 404.
+function buildPrintPageHtml(m, includeQr) {
   let sectionLastSeen = null;
   const agendaTableRows = (m.agenda || []).map(function (row) {
     let rows = '';
@@ -71,7 +72,7 @@ async function renderPrintAgenda(meetingId) {
       '<td class="time-col">' + (row.scheduled_time || '') + '</td>' +
       '<td><div class="summary-main">' + escapeHtml(row.type_label || row.summary_zh || '') + '</div>' +
         (summarySub ? '<div class="summary-sub">' + escapeHtml(summarySub) + '</div>' : '') +
-        (row.resource_url ? '<div class="summary-sub resource-link"><i class="ti ti-link" style="font-size:10px;"></i> <a href="' + escapeHtml(row.resource_url) + '" target="_blank">' + escapeHtml(row.resource_label || '相关资源') + '</a></div>' : '') +
+        (row.resource_url ? '<div class="summary-sub resource-link"><i class="ti ti-link" style="font-size:10px;"></i> <a href="' + escapeHtml(row.resource_url) + '" download target="_blank">' + escapeHtml(row.resource_label || '相关资源') + '</a></div>' : '') +
       '</td>' +
       '<td class="limit-col">' + (row.time_limit_min ? row.time_limit_min + (row.time_limit_max ? '-' + row.time_limit_max : '') : '') + '</td>' +
       '<td class="role-col">' + personCellHtml + '</td>' +
@@ -110,11 +111,63 @@ async function renderPrintAgenda(meetingId) {
 
   const resultsBar = (m.best_speaker_id || m.best_evaluator_id || m.best_table_topics_id)
     ? '<div class="print-results-bar">' +
-        (m.best_speaker_id ? '<div><strong>最佳备稿讲员</strong><br>' + escapeHtml(memberName(m.best_speaker_id)) + '</div>' : '') +
-        (m.best_evaluator_id ? '<div><strong>最佳评论员</strong><br>' + escapeHtml(memberName(m.best_evaluator_id)) + '</div>' : '') +
-        (m.best_table_topics_id ? '<div><strong>最佳即席讲员</strong><br>' + escapeHtml(memberName(m.best_table_topics_id)) + '</div>' : '') +
+        (m.best_speaker_id ? '<div><strong>最佳备稿讲员</strong><br>' + escapeHtml(m.best_speaker_name || '') + '</div>' : '') +
+        (m.best_evaluator_id ? '<div><strong>最佳评论员</strong><br>' + escapeHtml(m.best_evaluator_name || '') + '</div>' : '') +
+        (m.best_table_topics_id ? '<div><strong>最佳即席讲员</strong><br>' + escapeHtml(m.best_table_topics_name || '') + '</div>' : '') +
       '</div>'
     : '';
+
+  return (
+    '<div class="print-page card">' +
+      '<div class="print-banner">' +
+        '<img class="crest-logo" src="/images/toastmasters-logo.png" alt="Toastmasters International">' +
+        '<h1>经禧华语讲演会</h1>' +
+        '<div class="tagline">训练口才的讲台，交流知识的平台，挥洒才情的舞台</div>' +
+        '<div class="meta">国际演讲会　80区域　分会编号 1453287</div>' +
+      '</div>' +
+      '<div class="print-venue">地点：' + escapeHtml(m.venue || '') + '</div>' +
+      '<div class="print-mission">分会使命：我们提供互助互益的学习体验，使会员提高沟通和领导能力，最终达到提高自信，促进个人成长的目标</div>' +
+      '<div class="print-meeting-no">' + escapeHtml(m.meeting_no || '') + '　（' + fmtDate(m.meeting_date) + '　晚间 ' + (m.meeting_time || '') + '）</div>' +
+      '<div class="print-theme-bar">例会主题：' + escapeHtml(m.theme || '') + '</div>' +
+
+      '<div class="print-body">' +
+        '<div class="print-exco-panel">' +
+          '<div class="term-label">' + escapeHtml(m.term_label || '执委名单') + '</div>' +
+          excoRows +
+          (dutyRoleRows ? '<div class="term-label" style="margin-top:8px;">职务分配</div>' + dutyRoleRows : '') +
+        '</div>' +
+        '<div class="print-agenda-panel">' +
+          '<table class="agenda-table">' +
+            '<thead><tr><th>时间</th><th>摘要</th><th>时限</th><th>讲员/负责会友</th></tr></thead>' +
+            '<tbody>' + agendaTableRows + '</tbody>' +
+          '</table>' +
+          resultsBar +
+        '</div>' +
+      '</div>' +
+
+      '<div class="print-dresscode">衣着：女士服装端庄大方，男士衬衫长裤。欢迎公众人士观摩</div>' +
+      (m.footer_remarks ? '<div class="print-remarks">' + escapeHtml(m.footer_remarks) + '</div>' : '') +
+      (includeQr
+        ? '<div class="print-qr-row">' +
+            '<div id="print-qr-canvas"></div>' +
+            '<div class="qr-caption">扫码在线查看议程<br>Scan to view online</div>' +
+          '</div>'
+        : '') +
+      '<div class="print-pathway-legend">' +
+        '<div class="legend-title">新路径 ：Pathways 十一大路线</div>' +
+        '<div class="legend-grid">' +
+          PATHWAY_LEGEND.map(function (s) { return '<div>' + escapeHtml(s) + '</div>'; }).join('') +
+        '</div>' +
+      '</div>' +
+    '</div>'
+  );
+}
+
+async function renderPrintAgenda(meetingId) {
+  const app = document.getElementById('app');
+  app.innerHTML = '<div class="empty-state">加载中…</div>';
+  const m = await API.get('/meetings/' + meetingId);
+  const includeQr = m.status === 'published';
 
   app.innerHTML =
     '<div style="background:var(--paper-100);min-height:100vh;padding:24px 16px;">' +
@@ -125,47 +178,34 @@ async function renderPrintAgenda(meetingId) {
           '<button class="btn btn-primary btn-sm" id="download-jpeg-btn"><i class="ti ti-photo"></i> 下载图片 (JPEG)</button>' +
         '</div>' +
       '</div>' +
-      '<div class="print-page card">' +
-        '<div class="print-banner">' +
-          '<img class="crest-logo" src="/images/toastmasters-logo.png" alt="Toastmasters International">' +
-          '<h1>经禧华语讲演会</h1>' +
-          '<div class="tagline">训练口才的讲台，交流知识的平台，挥洒才情的舞台</div>' +
-          '<div class="meta">国际演讲会　80区域　分会编号 1453287</div>' +
-        '</div>' +
-        '<div class="print-venue">地点：' + escapeHtml(m.venue || '') + '</div>' +
-        '<div class="print-mission">分会使命：我们提供互助互益的学习体验，使会员提高沟通和领导能力，最终达到提高自信，促进个人成长的目标</div>' +
-        '<div class="print-meeting-no">' + escapeHtml(m.meeting_no || '') + '　（' + fmtDate(m.meeting_date) + '　晚间 ' + (m.meeting_time || '') + '）</div>' +
-        '<div class="print-theme-bar">例会主题：' + escapeHtml(m.theme || '') + '</div>' +
-
-        '<div class="print-body">' +
-          '<div class="print-exco-panel">' +
-            '<div class="term-label">' + escapeHtml(m.term_label || '执委名单') + '</div>' +
-            excoRows +
-            (dutyRoleRows ? '<div class="term-label" style="margin-top:8px;">职务分配</div>' + dutyRoleRows : '') +
-          '</div>' +
-          '<div class="print-agenda-panel">' +
-            '<table class="agenda-table">' +
-              '<thead><tr><th>时间</th><th>摘要</th><th>时限</th><th>讲员/负责会友</th></tr></thead>' +
-              '<tbody>' + agendaTableRows + '</tbody>' +
-            '</table>' +
-            resultsBar +
-          '</div>' +
-        '</div>' +
-
-        '<div class="print-dresscode">衣着：女士服装端庄大方，男士衬衫长裤。欢迎公众人士观摩</div>' +
-        (m.footer_remarks ? '<div class="print-remarks">' + escapeHtml(m.footer_remarks) + '</div>' : '') +
-        '<div class="print-pathway-legend">' +
-          '<div class="legend-title">新路径 ：Pathways 十一大路线</div>' +
-          '<div class="legend-grid">' +
-            PATHWAY_LEGEND.map(function (s) { return '<div>' + escapeHtml(s) + '</div>'; }).join('') +
-          '</div>' +
-        '</div>' +
-      '</div>' +
+      buildPrintPageHtml(m, includeQr) +
     '</div>';
+
+  if (includeQr) renderQrCode('print-qr-canvas', window.location.origin + '/#/public/meetings/' + m.id);
 
   document.getElementById('download-jpeg-btn').addEventListener('click', function () {
     downloadAgendaJpeg(m);
   });
+}
+
+// Public, unauthenticated view reached by scanning the QR code — no
+// sidebar, no login, no edit/print controls beyond a plain browser print.
+// Fetches from /api/public/meetings/:id, which only serves meetings with
+// status='published' (drafts 404).
+async function renderPublicAgenda(meetingId) {
+  const app = document.getElementById('app');
+  app.innerHTML = '<div class="empty-state">加载中…</div>';
+  let m;
+  try {
+    m = await API.get('/public/meetings/' + meetingId);
+  } catch (err) {
+    app.innerHTML = '<div class="empty-state"><i class="ti ti-file-off"></i> 找不到此议程，或尚未公开发布。</div>';
+    return;
+  }
+  app.innerHTML =
+    '<div style="background:var(--paper-100);min-height:100vh;padding:24px 16px;">' +
+      buildPrintPageHtml(m, false) +
+    '</div>';
 }
 
 function memberName(id) {
@@ -198,6 +238,33 @@ function loadHtml2Canvas() {
     document.head.appendChild(script);
   });
   return _html2canvasLoadPromise;
+}
+
+// Loads the QR code library once, from CDN, and caches the loading promise.
+let _qrLoadPromise = null;
+function loadQrLib() {
+  if (window.QRCode) return Promise.resolve();
+  if (_qrLoadPromise) return _qrLoadPromise;
+  _qrLoadPromise = new Promise(function (resolve, reject) {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    script.onload = function () { resolve(); };
+    script.onerror = function () { reject(new Error('QR code library failed to load')); };
+    document.head.appendChild(script);
+  });
+  return _qrLoadPromise;
+}
+
+async function renderQrCode(containerId, url) {
+  try {
+    await loadQrLib();
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    new window.QRCode(el, { text: url, width: 84, height: 84, correctLevel: window.QRCode.CorrectLevel.M });
+  } catch (err) {
+    console.error(err);
+    // Non-fatal: the printout still works fine without the QR code.
+  }
 }
 
 // Captures the .print-page element exactly as rendered on screen (which
