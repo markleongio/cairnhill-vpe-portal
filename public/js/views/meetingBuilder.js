@@ -40,6 +40,7 @@ function renderBuilderContent(viewOnly) {
       '</div>' +
       '<div class="flex gap-8">' +
         '<a href="#/meetings/' + m.id + '/print" class="btn" target="_blank"><i class="ti ti-printer"></i> ' + escapeHtml(t('print_agenda')) + '</a>' +
+        (m.status === 'published' ? '<button class="btn" id="share-btn"><i class="ti ti-share-2"></i> ' + escapeHtml(t('share')) + '</button>' : '') +
         (editable
           ? '<button class="btn btn-gold" id="publish-btn"><i class="ti ti-send"></i> ' + (m.status === 'draft' ? escapeHtml(t('publish')) : escapeHtml(t('published_label'))) + '</button>'
           : '<button class="btn btn-primary" id="edit-btn"><i class="ti ti-edit"></i> ' + escapeHtml(t('edit_agenda')) + '</button>') +
@@ -355,6 +356,9 @@ function wireBuilderEvents(editable) {
     } catch (err) { toast(err.message, 'error'); }
   });
 
+  const shareBtn = document.getElementById('share-btn');
+  if (shareBtn) shareBtn.addEventListener('click', function () { openShareModal(m); });
+
   const recalcBtn = document.getElementById('recalc-times-btn');
   if (recalcBtn) recalcBtn.addEventListener('click', async function () {
     try {
@@ -465,4 +469,66 @@ async function refreshMeeting(editable) {
   builderState.meeting = meeting;
   builderState.speeches = speeches;
   renderBuilderContent(!editable);
+}
+
+function openShareModal(m) {
+  const publicUrl = window.location.origin + '/#/public/meetings/' + m.id;
+  const shareTitle = '经禧华语讲演会 · ' + (m.meeting_no || '');
+  const shareText = shareTitle + (m.theme ? ' — ' + m.theme : '');
+
+  const hasNativeShare = !!navigator.share;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'modal-backdrop';
+  wrap.innerHTML =
+    '<div class="modal">' +
+      '<div class="modal-head"><h3>' + escapeHtml(t('share')) + '</h3><button class="modal-close" id="modal-close">&times;</button></div>' +
+      '<div class="modal-body">' +
+        '<div class="field"><label>' + escapeHtml(t('public_link_label')) + '</label>' +
+          '<div class="flex gap-8">' +
+            '<input type="text" id="share-url-input" value="' + escapeHtml(publicUrl) + '" readonly style="flex:1;">' +
+            '<button class="btn btn-sm" id="copy-link-btn"><i class="ti ti-copy"></i> ' + escapeHtml(t('copy')) + '</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="flex gap-8 mt-16" style="flex-wrap:wrap;">' +
+          (hasNativeShare ? '<button class="btn btn-primary btn-sm" id="native-share-btn"><i class="ti ti-share-2"></i> ' + escapeHtml(t('share')) + '</button>' : '') +
+          '<button class="btn btn-sm" id="fb-share-btn">Facebook</button>' +
+          '<button class="btn btn-sm" id="li-share-btn">LinkedIn</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="modal-foot"><button class="btn" id="cancel-btn">' + escapeHtml(t('close')) + '</button></div>' +
+    '</div>';
+  document.body.appendChild(wrap);
+
+  function close() { wrap.remove(); }
+  wrap.addEventListener('click', function (e) { if (e.target === wrap) close(); });
+  document.getElementById('modal-close').addEventListener('click', close);
+  document.getElementById('cancel-btn').addEventListener('click', close);
+
+  document.getElementById('copy-link-btn').addEventListener('click', async function () {
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      toast(I18N.lang === 'zh' ? '已复制链接' : 'Link copied', 'success');
+    } catch (err) {
+      const input = document.getElementById('share-url-input');
+      input.select();
+      document.execCommand('copy');
+      toast(I18N.lang === 'zh' ? '已复制链接' : 'Link copied', 'success');
+    }
+  });
+
+  const nativeBtn = document.getElementById('native-share-btn');
+  if (nativeBtn) nativeBtn.addEventListener('click', async function () {
+    try {
+      await navigator.share({ title: shareTitle, text: shareText, url: publicUrl });
+    } catch (err) { /* user cancelled the native share sheet — not an error */ }
+  });
+
+  document.getElementById('fb-share-btn').addEventListener('click', function () {
+    window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(publicUrl), '_blank', 'width=600,height=500');
+  });
+
+  document.getElementById('li-share-btn').addEventListener('click', function () {
+    window.open('https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(publicUrl), '_blank', 'width=600,height=500');
+  });
 }
