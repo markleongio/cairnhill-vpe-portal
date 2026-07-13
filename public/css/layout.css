@@ -258,6 +258,15 @@ table.data-table.clickable tr { cursor: pointer; }
   width: 68px; height: 60px;
   object-fit: contain;
 }
+@media (max-width: 600px) {
+  .print-banner .crest-logo {
+    position: static;
+    transform: none;
+    display: block;
+    margin: 0 auto 10px;
+  }
+  .print-banner h1 { font-size: 24px; }
+}
 .print-banner h1 { color: var(--paper-0); font-size: 31px; margin-bottom: 4px; }
 .print-banner .tagline { font-size: 13.5px; color: var(--gold-300); }
 .print-banner .meta { font-size: 12.5px; color: rgba(255,255,255,0.75); margin-top: 10px; }
