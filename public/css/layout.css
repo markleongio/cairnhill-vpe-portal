@@ -115,6 +115,7 @@
 .sidebar-foot button:hover { color: var(--gold-300); }
 
 .main { flex: 1; min-width: 0; }
+#mobile-nav-toggle { display: none; }
 .topbar {
   height: 60px;
   display: flex;
@@ -227,6 +228,10 @@ table.data-table.clickable tr { cursor: pointer; }
 .agenda-row-meta { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .agenda-row-detail { border-top: 1px solid var(--line); padding: 16px; background: var(--paper-50); }
 .drag-handle { color: var(--ink-300); cursor: grab; font-size: 16px; }
+.agenda-row-move-btns { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+.agenda-row-move-btns .btn-icon { width: 22px; height: 18px; padding: 0; border-radius: 4px; }
+.agenda-row-move-btns .btn-icon i { font-size: 14px; }
+.agenda-row-move-btns .btn-icon:disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
 .section-divider {
   font-family: var(--font-display);
   font-weight: 700;
@@ -266,6 +271,9 @@ table.data-table.clickable tr { cursor: pointer; }
     margin: 0 auto 10px;
   }
   .print-banner h1 { font-size: 24px; }
+}
+@media (max-width: 480px) {
+  .field-row { flex-direction: column; gap: 0; }
 }
 .print-banner h1 { color: var(--paper-0); font-size: 31px; margin-bottom: 4px; }
 .print-banner .tagline { font-size: 13.5px; color: var(--gold-300); }
@@ -437,6 +445,17 @@ table.agenda-table .role-col .person-pathway { font-size: 11px; font-weight: 400
 @media (max-width: 880px) {
   .sidebar { position: fixed; left: -260px; z-index: 50; transition: left 0.2s; }
   .sidebar.open { left: 0; }
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,0.45);
+    z-index: 40;
+  }
+  .sidebar-backdrop.open { display: block; }
+  #mobile-nav-toggle { display: inline-flex; }
+  .content { padding: 16px 16px 48px; }
+  table.data-table { display: block; overflow-x: auto; white-space: nowrap; }
   .print-body { flex-direction: column; }
   .print-exco-panel { width: 100%; border-right: none; border-bottom: 1px solid var(--line); }
 }
