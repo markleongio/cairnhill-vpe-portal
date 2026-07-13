@@ -65,6 +65,8 @@ const I18N = {
     agenda: { zh: '议程', en: 'Agenda' },
     add_segment: { zh: '新增环节', en: 'Add Segment' },
     recalc_times: { zh: '自动计算时间', en: 'Recalculate Times' },
+    move_up: { zh: '上移', en: 'Move up' },
+    move_down: { zh: '下移', en: 'Move down' },
     results: { zh: '例会成绩', en: 'Results' },
     best_speaker: { zh: '最佳讲员', en: 'Best Speaker' },
     best_evaluator: { zh: '最佳评论员', en: 'Best Evaluator' },
