@@ -16,6 +16,11 @@ async function renderMeetingBuilder(meetingId, viewOnly) {
 function renderBuilderContent(viewOnly) {
   const m = builderState.meeting;
   const editable = !viewOnly;
+  // The 届次 (meeting number) is club-official and prints on the agenda, so it is
+  // shown to everyone but only an admin can change it. The server enforces this
+  // too — the disabled attribute here is convenience, not security.
+  const isAdmin = !!(Store.user && Store.user.role === 'admin');
+  const canEditMeetingNo = editable && isAdmin;
 
   let lastSection = null;
   const agendaRows = m.agenda || [];
@@ -50,6 +55,11 @@ function renderBuilderContent(viewOnly) {
     '</div>' +
 
     '<div class="card card-pad mt-16">' +
+      '<div class="field">' +
+        '<label>' + escapeHtml(t('meeting_no')) + '</label>' +
+        '<input type="text" id="m-meeting-no" value="' + escapeHtml(m.meeting_no || '') + '" placeholder="第十七届第一次例会" ' + (canEditMeetingNo ? '' : 'disabled') + '>' +
+        (editable && !isAdmin ? '<div class="small muted mt-8">' + escapeHtml(t('admin_only_field')) + '</div>' : '') +
+      '</div>' +
       '<div class="field-row">' +
         '<div class="field"><label>' + escapeHtml(t('theme')) + '</label><input type="text" id="m-theme" value="' + escapeHtml(m.theme || '') + '" ' + (editable ? '' : 'disabled') + '></div>' +
         '<div class="field"><label>' + escapeHtml(t('venue')) + '</label><input type="text" id="m-venue" value="' + escapeHtml(m.venue || '') + '" ' + (editable ? '' : 'disabled') + '></div>' +
@@ -333,12 +343,32 @@ function wireBuilderEvents(editable) {
 
   const saveMetaBtn = document.getElementById('save-meta-btn');
   if (saveMetaBtn) saveMetaBtn.addEventListener('click', async function () {
+    const payload = {
+      theme: document.getElementById('m-theme').value,
+      venue: document.getElementById('m-venue').value,
+      footer_remarks: document.getElementById('m-footer-remarks').value,
+    };
+
+    // Only send meeting_no when the admin actually had an enabled input, so a
+    // non-admin save never trips the server's 403 on that field.
+    const meetingNoInput = document.getElementById('m-meeting-no');
+    const sendsMeetingNo = meetingNoInput && !meetingNoInput.disabled;
+    if (sendsMeetingNo) payload.meeting_no = meetingNoInput.value.trim();
+
     try {
-      await API.put('/meetings/' + m.id, {
-        theme: document.getElementById('m-theme').value,
-        venue: document.getElementById('m-venue').value,
-        footer_remarks: document.getElementById('m-footer-remarks').value,
-      });
+      await API.put('/meetings/' + m.id, payload);
+
+      // Keep the in-memory meeting in sync so the heading and any later save
+      // reflect what was just stored, without a full round-trip re-render.
+      m.theme = payload.theme;
+      m.venue = payload.venue;
+      m.footer_remarks = payload.footer_remarks;
+      if (sendsMeetingNo) {
+        m.meeting_no = payload.meeting_no || null;
+        const heading = document.querySelector('.page-head h1');
+        if (heading) heading.textContent = m.meeting_no || t('meeting_records');
+      }
+
       toast(I18N.lang === 'zh' ? '已保存基本信息' : 'Basic info saved', 'success');
     } catch (err) { toast(err.message, 'error'); }
   });
