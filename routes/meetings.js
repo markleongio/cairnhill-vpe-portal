@@ -162,12 +162,40 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Fields only an admin may change. meeting_no is the club's official 届次
+// identifier and appears on the printed agenda, so it shouldn't be editable by
+// every logged-in exco account.
+const ADMIN_ONLY_MEETING_FIELDS = ['meeting_no'];
+
 router.put('/:id', async (req, res) => {
   try {
     const fields = [
       'meeting_no', 'meeting_date', 'meeting_time', 'venue', 'theme', 'term_label',
       'status', 'best_speaker_id', 'best_evaluator_id', 'best_table_topics_id', 'dress_code', 'footer_remarks',
     ];
+
+    const isAdmin = req.session && req.session.role === 'admin';
+    const blocked = ADMIN_ONLY_MEETING_FIELDS.filter((f) => req.body[f] !== undefined);
+    if (blocked.length && !isAdmin) {
+      return res.status(403).json({ error: '只有管理员可修改届次 / Only an admin can change the meeting number' });
+    }
+
+    // Normalise: a cleared input arrives as '' and should be stored as NULL so
+    // the uniqueness check below doesn't treat several blank meetings as clashing.
+    if (typeof req.body.meeting_no === 'string') {
+      req.body.meeting_no = req.body.meeting_no.trim() || null;
+    }
+
+    if (req.body.meeting_no) {
+      const dupe = await get(
+        'SELECT id FROM meetings WHERE meeting_no = ? AND id <> ?',
+        [req.body.meeting_no, req.params.id]
+      );
+      if (dupe) {
+        return res.status(409).json({ error: '该届次已被其他例会使用 / That meeting number is already used by another meeting' });
+      }
+    }
+
     const updates = [];
     const params = [];
     for (const f of fields) {
@@ -197,15 +225,80 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// --- Meeting number helpers ---------------------------------------------------
+// Meeting numbers follow the club's Chinese convention, e.g. 第十七届第一次例会
+// ("17th term, 1st session"). Cloning previously copied meeting_no verbatim from
+// the source meeting, so every cloned meeting inherited a stale number that the
+// UI then had no way to correct. Clone now advances the 次 (session) counter and
+// leaves 届 (term) alone; admins can still override it from Basic Info.
+
+const ZH_DIGITS = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+
+function zhToNumber(str) {
+  if (!str) return null;
+  if (/^\d+$/.test(str)) return parseInt(str, 10);
+
+  let total = 0;
+  let section = 0;
+  let sawDigit = false;
+
+  for (const ch of str) {
+    const d = ZH_DIGITS.indexOf(ch);
+    if (d >= 0) { section = d; sawDigit = true; continue; }
+    if (ch === '十') { total += (section || 1) * 10; section = 0; sawDigit = true; continue; }
+    if (ch === '百') { total += (section || 1) * 100; section = 0; sawDigit = true; continue; }
+    return null; // unrecognised character — bail out rather than guess
+  }
+
+  const n = total + section;
+  return sawDigit && n > 0 ? n : null;
+}
+
+function numberToZh(n) {
+  if (!Number.isInteger(n) || n < 1 || n > 999) return null;
+  if (n < 10) return ZH_DIGITS[n];
+  if (n < 20) return '十' + (n % 10 ? ZH_DIGITS[n % 10] : '');
+  if (n < 100) return ZH_DIGITS[Math.floor(n / 10)] + '十' + (n % 10 ? ZH_DIGITS[n % 10] : '');
+
+  const hundreds = ZH_DIGITS[Math.floor(n / 100)] + '百';
+  const rem = n % 100;
+  if (rem === 0) return hundreds;
+  if (rem < 10) return hundreds + '零' + ZH_DIGITS[rem];
+  if (rem < 20) return hundreds + '一十' + (rem % 10 ? ZH_DIGITS[rem % 10] : '');
+  return hundreds + numberToZh(rem);
+}
+
+// Returns the next meeting number, or null when the source number is missing or
+// in a shape we don't recognise (in which case the clone is left blank for the
+// admin to fill in, which is safer than silently duplicating).
+function nextMeetingNo(meetingNo) {
+  if (!meetingNo) return null;
+  const match = meetingNo.match(/第([零一二三四五六七八九十百\d]+)次/);
+  if (!match) return null;
+
+  const current = zhToNumber(match[1]);
+  if (!current) return null;
+
+  const next = /^\d+$/.test(match[1]) ? String(current + 1) : numberToZh(current + 1);
+  if (!next) return null;
+
+  return meetingNo.replace(match[0], '第' + next + '次');
+}
+
+router.nextMeetingNo = nextMeetingNo;
+
 router.post('/:id/clone', async (req, res) => {
   try {
     const src = await get('SELECT * FROM meetings WHERE id = ?', [req.params.id]);
     if (!src) return res.status(404).json({ error: 'Meeting not found' });
     const b = req.body;
 
+    const requestedNo = typeof b.new_meeting_no === 'string' ? b.new_meeting_no.trim() : '';
+    const clonedNo = requestedNo || nextMeetingNo(src.meeting_no);
+
     const result = await run(
-      "INSERT INTO meetings (meeting_no, meeting_date, meeting_time, venue, theme, term_label, dress_code, status, created_by) VALUES (?,?,?,?,?,?,?, 'draft', ?)",
-      [b.new_meeting_no || src.meeting_no, b.new_date || src.meeting_date, src.meeting_time, src.venue, null, src.term_label, src.dress_code, req.session.userId]
+      "INSERT INTO meetings (meeting_no, meeting_date, meeting_time, venue, theme, term_label, dress_code, footer_remarks, status, created_by) VALUES (?,?,?,?,?,?,?,?, 'draft', ?)",
+      [clonedNo || null, b.new_date || src.meeting_date, src.meeting_time, src.venue, null, src.term_label, src.dress_code, src.footer_remarks, req.session.userId]
     );
     const newId = result.lastInsertRowid;
 
@@ -233,7 +326,7 @@ router.post('/:id/clone', async (req, res) => {
       }
     }
 
-    res.json({ id: newId });
+    res.json({ id: newId, meeting_no: clonedNo || null });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
