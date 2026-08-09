@@ -48,6 +48,7 @@ const I18N = {
     meeting_management: { zh: '例会管理', en: 'Meeting Management' },
     date: { zh: '日期', en: 'Date' },
     meeting_no: { zh: '届次', en: 'Meeting No.' },
+    admin_only_field: { zh: '仅管理员可修改', en: 'Only an admin can change this' },
     theme: { zh: '主题', en: 'Theme' },
     status: { zh: '状态', en: 'Status' },
     clone_as_new: { zh: '复制为新例会', en: 'Clone as new meeting' },
